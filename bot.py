@@ -71,6 +71,18 @@ async def create_outline_key(label: str | None = None) -> dict:
     return await asyncio.to_thread(manager.new, label)
 
 
+async def schedule_key_deletion(key_id: int, delay: int = 24 * 60 * 60) -> None:
+    async def _remove() -> None:
+        await asyncio.sleep(delay)
+        manager = outline_manager()
+        try:
+            await asyncio.to_thread(manager.delete, key_id)
+        except Exception as exc:
+            logging.error("Failed to delete Outline key: %s", exc)
+
+    asyncio.create_task(_remove())
+
+
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
     text = (
@@ -109,7 +121,15 @@ async def cmd_start(message: types.Message):
 
 @dp.callback_query(F.data == "trial")
 async def callback_trial(callback: types.CallbackQuery):
-    await send_temporary(bot, callback.message.chat.id, 'Вы нажали "Пробный период"')
+    try:
+        key = await create_outline_key(f"trial-{callback.from_user.id}")
+        await schedule_key_deletion(key.get("id"))
+        await callback.message.answer(
+            f"Ваш пробный ключ на 24 часа:\n{key.get('accessUrl', 'не удалось получить')}"
+        )
+    except Exception as exc:
+        logging.error("Failed to create trial key: %s", exc)
+        await send_temporary(bot, callback.message.chat.id, "Не удалось получить пробный ключ.")
     await callback.answer()
 
 
