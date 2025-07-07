@@ -28,3 +28,6 @@ python bot.py
 ```
 
 For Railway or Nixpacks deployments, set the start command to `python bot.py` in `nixpacks.toml` or a `Procfile`.
+
+Messages sent via some commands are automatically deleted. You can configure the
+delay using the `DELETE_DELAY` environment variable (in seconds, default `30`).
