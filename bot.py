@@ -14,6 +14,8 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram import F
 from outline_api import Manager
+import time
+from db import init_db, add_key, clear_key, has_used_trial, get_active_key
 
 TOKEN = os.getenv("BOT_TOKEN")
 
@@ -47,10 +49,10 @@ class BuyVPN(StatesGroup):
 
 
 TARIFFS = {
-    "\U0001F7E1 1 мес — 200\u20BD": {"amount": 200, "code": "1m"},
-    "\U0001F7E2 3 мес — 550\u20BD": {"amount": 550, "code": "3m"},
-    "\U0001F7E2 6 мес — 1000\u20BD": {"amount": 1000, "code": "6m"},
-    "\U0001F7E3 12 мес — 1900\u20BD": {"amount": 1900, "code": "12m"},
+    "\U0001F7E1 1 мес — 200\u20BD": {"amount": 200, "code": "1m", "days": 30},
+    "\U0001F7E2 3 мес — 550\u20BD": {"amount": 550, "code": "3m", "days": 90},
+    "\U0001F7E2 6 мес — 1000\u20BD": {"amount": 1000, "code": "6m", "days": 180},
+    "\U0001F7E3 12 мес — 1900\u20BD": {"amount": 1900, "code": "12m", "days": 365},
 }
 
 PAY_METHODS = {
@@ -71,7 +73,12 @@ async def create_outline_key(label: str | None = None) -> dict:
     return await asyncio.to_thread(manager.new, label)
 
 
-async def schedule_key_deletion(key_id: int, delay: int = 24 * 60 * 60) -> None:
+async def schedule_key_deletion(
+    key_id: int,
+    delay: int = 24 * 60 * 60,
+    user_id: int | None = None,
+    is_trial: bool | None = None,
+) -> None:
     async def _remove() -> None:
         await asyncio.sleep(delay)
         manager = outline_manager()
@@ -79,6 +86,8 @@ async def schedule_key_deletion(key_id: int, delay: int = 24 * 60 * 60) -> None:
             await asyncio.to_thread(manager.delete, key_id)
         except Exception as exc:
             logging.error("Failed to delete Outline key: %s", exc)
+        if user_id is not None and is_trial is not None:
+            clear_key(user_id, is_trial)
 
     asyncio.create_task(_remove())
 
@@ -121,15 +130,20 @@ async def cmd_start(message: types.Message):
 
 @dp.callback_query(F.data == "trial")
 async def callback_trial(callback: types.CallbackQuery):
-    try:
-        key = await create_outline_key(f"trial-{callback.from_user.id}")
-        await schedule_key_deletion(key.get("id"))
-        await callback.message.answer(
-            f"Ваш пробный ключ на 24 часа:\n{key.get('accessUrl', 'не удалось получить')}"
-        )
-    except Exception as exc:
-        logging.error("Failed to create trial key: %s", exc)
-        await send_temporary(bot, callback.message.chat.id, "Не удалось получить пробный ключ.")
+    if has_used_trial(callback.from_user.id):
+        await send_temporary(bot, callback.message.chat.id, "Вы уже использовали пробный период.")
+    else:
+        try:
+            key = await create_outline_key(f"trial-{callback.from_user.id}")
+            expires = int(time.time() + 24 * 60 * 60)
+            add_key(callback.from_user.id, key.get("id"), key.get("accessUrl"), expires, True)
+            await schedule_key_deletion(key.get("id"), delay=24 * 60 * 60, user_id=callback.from_user.id, is_trial=True)
+            await callback.message.answer(
+                f"Ваш пробный ключ на 24 часа:\n{key.get('accessUrl', 'не удалось получить')}"
+            )
+        except Exception as exc:
+            logging.error("Failed to create trial key: %s", exc)
+            await send_temporary(bot, callback.message.chat.id, "Не удалось получить пробный ключ.")
     await callback.answer()
 
 
@@ -233,17 +247,35 @@ async def select_method(message: types.Message, state: FSMContext):
         "\u2611\uFE0F Создали запрос на покупку.\nНажмите на кнопку: «\U0001F3E6 Оплатить»",
         reply_markup=inline_kb,
     )
+
+    try:
+        key = await create_outline_key(f"paid-{message.from_user.id}")
+        duration = tariff.get("days", 30) * 24 * 60 * 60
+        expires = int(time.time() + duration)
+        add_key(message.from_user.id, key.get("id"), key.get("accessUrl"), expires, False)
+        await schedule_key_deletion(
+            key.get("id"), delay=duration, user_id=message.from_user.id, is_trial=False
+        )
+        await message.answer(f"Ваш ключ:\n{key.get('accessUrl', 'не удалось получить')}")
+    except Exception as exc:
+        logging.error("Failed to create paid key: %s", exc)
+        await send_temporary(bot, message.chat.id, "Не удалось получить ключ.")
     await state.clear()
 
 
 @dp.message(F.text == "\U0001F511 Мои активные ключи")
 async def menu_keys(message: types.Message):
-    try:
-        key = await create_outline_key(str(message.from_user.id))
-        text = f"Ваш Outline ключ:\n{key.get('accessUrl', 'не удалось получить')}"
-    except Exception as exc:
-        logging.error("Failed to get Outline key: %s", exc)
-        text = "Не удалось получить ключ."
+    row = get_active_key(message.from_user.id)
+    now_ts = int(time.time())
+    if row:
+        access_url, expires_at, is_trial = row
+        if expires_at is not None and expires_at <= now_ts:
+            clear_key(message.from_user.id, bool(is_trial))
+            text = "Срок действия вашего ключа истёк."
+        else:
+            text = f"Ваш Outline ключ:\n{access_url}"
+    else:
+        text = "У вас нет активного ключа."
     await send_temporary(bot, message.chat.id, text)
 
 
@@ -263,6 +295,7 @@ async def menu_help(message: types.Message):
 
 
 async def main() -> None:
+    init_db()
     await dp.start_polling(bot)
 
 
