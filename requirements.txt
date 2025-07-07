@@ -1,3 +1,4 @@
 aiogram>=3.0
 pytest
 pytest-asyncio
+outline-api
