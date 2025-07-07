@@ -1,6 +1,8 @@
 # Telegram VPN Bot
 
 Simple Telegram bot using [aiogram](https://docs.aiogram.dev/) v3.
+The bot stores issued VPN keys in a local SQLite database so that each
+user can only obtain a trial VPN once and paid keys expire automatically.
 
 ## Features
 
@@ -26,6 +28,10 @@ Set the `BOT_TOKEN` environment variable with your bot token and run:
 ```bash
 python bot.py
 ```
+
+The bot saves issued keys in a SQLite database. By default the database
+file `vpn.sqlite` is created in the current directory. You can override
+the location using the `DB_PATH` environment variable.
 
 For Railway or Nixpacks deployments, set the start command to `python bot.py` in `nixpacks.toml` or a `Procfile`.
 
