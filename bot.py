@@ -1,5 +1,6 @@
 import logging
 import os
+import asyncio
 
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
@@ -19,6 +20,22 @@ logging.basicConfig(level=logging.INFO)
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
+
+DELETE_DELAY = int(os.getenv("DELETE_DELAY", "30"))
+
+
+async def send_temporary(bot: Bot, chat_id: int, text: str, delay: int = DELETE_DELAY, **kwargs) -> types.Message:
+    msg = await bot.send_message(chat_id, text, **kwargs)
+
+    async def _remove() -> None:
+        await asyncio.sleep(delay)
+        try:
+            await bot.delete_message(chat_id, msg.message_id)
+        except Exception as exc:
+            logging.error("Failed to delete message: %s", exc)
+
+    asyncio.create_task(_remove())
+    return msg
 
 
 class BuyVPN(StatesGroup):
@@ -78,13 +95,13 @@ async def cmd_start(message: types.Message):
 
 @dp.callback_query(F.data == "trial")
 async def callback_trial(callback: types.CallbackQuery):
-    await callback.message.answer('Вы нажали "Пробный период"')
+    await send_temporary(bot, callback.message.chat.id, 'Вы нажали "Пробный период"')
     await callback.answer()
 
 
 @dp.callback_query(F.data == "buy_extend")
 async def callback_buy(callback: types.CallbackQuery):
-    await callback.message.answer('Вы нажали "Купить VPN | Продлить"')
+    await send_temporary(bot, callback.message.chat.id, 'Вы нажали "Купить VPN | Продлить"')
     await callback.answer()
 
 
@@ -187,22 +204,22 @@ async def select_method(message: types.Message, state: FSMContext):
 
 @dp.message(F.text == "\U0001F511 Мои активные ключи")
 async def menu_keys(message: types.Message):
-    await message.answer('Вот ваши активные ключи: ...')
+    await send_temporary(bot, message.chat.id, 'Вот ваши активные ключи: ...')
 
 
 @dp.message(F.text == "\U0001F9D1\u200D\U0001F4AC Отзывы")
 async def menu_reviews(message: types.Message):
-    await message.answer('Раздел "Отзывы" пока в разработке')
+    await send_temporary(bot, message.chat.id, 'Раздел "Отзывы" пока в разработке')
 
 
 @dp.message(F.text == "\U0001F381 Пригласить")
 async def menu_invite(message: types.Message):
-    await message.answer('Раздел "Пригласить" пока в разработке')
+    await send_temporary(bot, message.chat.id, 'Раздел "Пригласить" пока в разработке')
 
 
 @dp.message(F.text == "\U0001F198 Помощь")
 async def menu_help(message: types.Message):
-    await message.answer('Раздел "Помощь" пока в разработке')
+    await send_temporary(bot, message.chat.id, 'Раздел "Помощь" пока в разработке')
 
 
 async def main() -> None:
