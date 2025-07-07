@@ -68,6 +68,16 @@ async def cmd_menu(message: types.Message):
     await cmd_start(message)
 
 
+@dp.message(Command("buy"))
+async def cmd_buy(message: types.Message):
+    await menu_buy(message)
+
+
+@dp.message(Command("help"))
+async def cmd_help(message: types.Message):
+    await menu_help(message)
+
+
 @dp.message(F.text == "\U0001F6D2 Купить VPN | \U0001F4C5 Продлить")
 async def menu_buy(message: types.Message):
     await message.answer('Раздел "Купить VPN | Продлить" пока в разработке')
