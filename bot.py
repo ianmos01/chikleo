@@ -13,6 +13,7 @@ from aiogram.types import (
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram import F
+from outline_api import Manager
 
 TOKEN = os.getenv("BOT_TOKEN")
 
@@ -20,6 +21,8 @@ logging.basicConfig(level=logging.INFO)
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
+
+OUTLINE_API_URL = os.getenv("OUTLINE_API_URL")
 
 DELETE_DELAY = int(os.getenv("DELETE_DELAY", "30"))
 
@@ -55,6 +58,17 @@ PAY_METHODS = {
     "\U0001F4B3 Карта РФ": ("card", "Карта РФ"),
     "\U0001F3E6 Ю.Касса": ("yookassa", "Ю.Касса"),
 }
+
+
+def outline_manager() -> Manager:
+    if not OUTLINE_API_URL:
+        raise RuntimeError("OUTLINE_API_URL not configured")
+    return Manager(apiurl=OUTLINE_API_URL, apicrt="")
+
+
+async def create_outline_key(label: str | None = None) -> dict:
+    manager = outline_manager()
+    return await asyncio.to_thread(manager.new, label)
 
 
 @dp.message(Command("start"))
@@ -204,7 +218,13 @@ async def select_method(message: types.Message, state: FSMContext):
 
 @dp.message(F.text == "\U0001F511 Мои активные ключи")
 async def menu_keys(message: types.Message):
-    await send_temporary(bot, message.chat.id, 'Вот ваши активные ключи: ...')
+    try:
+        key = await create_outline_key(str(message.from_user.id))
+        text = f"Ваш Outline ключ:\n{key.get('accessUrl', 'не удалось получить')}"
+    except Exception as exc:
+        logging.error("Failed to get Outline key: %s", exc)
+        text = "Не удалось получить ключ."
+    await send_temporary(bot, message.chat.id, text)
 
 
 @dp.message(F.text == "\U0001F9D1\u200D\U0001F4AC Отзывы")

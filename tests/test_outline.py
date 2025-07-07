@@ -1,0 +1,23 @@
+import os
+import sys
+from unittest.mock import patch
+
+import pytest
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+
+os.environ.setdefault("BOT_TOKEN", "TEST")
+
+from bot import create_outline_key
+
+@pytest.mark.asyncio
+async def test_create_outline_key_calls_manager():
+    os.environ["OUTLINE_API_URL"] = "https://example.com/api"
+    with patch('bot.OUTLINE_API_URL', "https://example.com/api"), \
+         patch('bot.Manager') as manager_cls:
+        manager = manager_cls.return_value
+        manager.new.return_value = {"accessUrl": "url"}
+        res = await create_outline_key("label")
+        manager_cls.assert_called_with(apiurl="https://example.com/api", apicrt="")
+        manager.new.assert_called_with("label")
+        assert res == {"accessUrl": "url"}
