@@ -41,3 +41,14 @@ delay using the `DELETE_DELAY` environment variable (in seconds, default `30`).
 If you have an [Outline](https://getoutline.org/) VPN server, set the
 `OUTLINE_API_URL` environment variable to your server's API URL. The bot will
 create a new access key when you select "🔑 Мои активные ключи".
+
+## Testing
+
+Install requirements and run the test suite:
+
+```bash
+pip install -r requirements.txt
+pytest
+```
+
+The tests patch out external dependencies, so no network services are required.
