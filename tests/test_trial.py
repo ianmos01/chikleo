@@ -43,12 +43,14 @@ async def test_callback_trial_creates_key_and_schedules_deletion():
     callback = SimpleNamespace(from_user=SimpleNamespace(id=1), message=message, answer=AsyncMock())
 
     manager = Mock()
-    with patch('bot.create_outline_key', AsyncMock(return_value=key)), \
+    create_key_mock = AsyncMock(return_value=key)
+    with patch('bot.create_outline_key', create_key_mock), \
          patch('bot.outline_manager', return_value=manager), \
          patch('bot.add_key') as add_key_mock, \
          patch('bot.has_used_trial', return_value=False), \
          patch('bot.schedule_key_deletion', AsyncMock()) as sched_mock:
         await callback_trial(callback)
+        create_key_mock.assert_awaited_with(label="vpn_1")
         add_key_mock.assert_called()
         sched_mock.assert_awaited_with(key['id'], delay=24 * 60 * 60, user_id=1, is_trial=True)
         message.answer.assert_awaited_with('Ваш пробный ключ на 24 часа:\nurl')

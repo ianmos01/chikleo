@@ -134,7 +134,7 @@ async def callback_trial(callback: types.CallbackQuery):
         await send_temporary(bot, callback.message.chat.id, "Вы уже использовали пробный период.")
     else:
         try:
-            key = await create_outline_key(f"trial-{callback.from_user.id}")
+            key = await create_outline_key(label=f"vpn_{callback.from_user.id}")
             expires = int(time.time() + 24 * 60 * 60)
             add_key(callback.from_user.id, key.get("id"), key.get("accessUrl"), expires, True)
             await schedule_key_deletion(key.get("id"), delay=24 * 60 * 60, user_id=callback.from_user.id, is_trial=True)
@@ -249,7 +249,7 @@ async def select_method(message: types.Message, state: FSMContext):
     )
 
     try:
-        key = await create_outline_key(f"paid-{message.from_user.id}")
+        key = await create_outline_key(label=f"vpn_{message.from_user.id}")
         duration = tariff.get("days", 30) * 24 * 60 * 60
         expires = int(time.time() + duration)
         add_key(message.from_user.id, key.get("id"), key.get("accessUrl"), expires, False)
