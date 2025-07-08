@@ -22,7 +22,7 @@ async def test_schedule_key_deletion_removes_key(task_spy):
     with patch("bot.outline_manager", return_value=manager), patch(
         "bot.asyncio.create_task", side_effect=fake_create_task
     ), patch("bot.asyncio.sleep", new=AsyncMock()) as sleep_mock:
-        task = schedule_key_deletion(5, delay=5)
+        _ = schedule_key_deletion(5, delay=5)
         await asyncio.gather(*tasks)
         assert any(c.args[0] == 5 for c in sleep_mock.await_args_list)
         manager.delete.assert_called_with(5)

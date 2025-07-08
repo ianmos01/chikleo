@@ -1,6 +1,5 @@
 """Tests for asynchronous database functions."""
 
-import asyncio
 import os
 import sys
 
@@ -8,7 +7,13 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))  # noqa: E402
 
-from db import add_key, clear_key, get_active_key, has_used_trial, init_db  # noqa: E402
+from db import (  # noqa: E402
+    add_key,
+    clear_key,
+    get_active_key,
+    has_used_trial,
+    init_db,
+)
 
 
 @pytest.mark.asyncio
