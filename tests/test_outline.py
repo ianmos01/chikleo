@@ -17,7 +17,7 @@ async def test_create_outline_key_calls_manager():
          patch('bot.Manager') as manager_cls:
         manager = manager_cls.return_value
         manager.new.return_value = {"accessUrl": "url"}
-        res = await create_outline_key("label")
+        res = await create_outline_key(label="vpn_7")
         manager_cls.assert_called_with(apiurl="https://example.com/api", apicrt="")
-        manager.new.assert_called_with("label")
+        manager.new.assert_called_with("vpn_7")
         assert res == {"accessUrl": "url"}
