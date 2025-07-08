@@ -1,7 +1,8 @@
-import os
-import sys
+"""Tests for ``send_temporary`` message auto-deletion."""
 
 import asyncio
+import os
+import sys
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
@@ -16,17 +17,11 @@ from bot import send_temporary  # noqa: E402
 
 
 @pytest.mark.asyncio
-async def test_send_temporary_deletes_message():
+async def test_send_temporary_deletes_message(task_spy):
     bot = AsyncMock()
     bot.send_message = AsyncMock(return_value=SimpleNamespace(message_id=10))
 
-    tasks = []
-    orig_create_task = asyncio.create_task
-
-    def fake_create_task(coro):
-        task = orig_create_task(coro)
-        tasks.append(task)
-        return task
+    tasks, fake_create_task = task_spy
 
     with patch("bot.asyncio.create_task", side_effect=fake_create_task), patch(
         "bot.asyncio.sleep", new=AsyncMock()

@@ -1,6 +1,9 @@
+"""Tests for Outline manager integration."""
+
 import os
 import sys
 from unittest.mock import patch
+
 import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))  # noqa: E402
