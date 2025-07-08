@@ -1,17 +1,16 @@
 import os
-import sqlite3
-from contextlib import closing
+import aiosqlite
 
 DB_PATH = os.getenv("DB_PATH", "vpn.sqlite")
 
 
 def get_connection():
-    return sqlite3.connect(DB_PATH)
+    return aiosqlite.connect(DB_PATH)
 
 
-def init_db() -> None:
-    with closing(get_connection()) as conn:
-        conn.execute(
+async def init_db() -> None:
+    async with get_connection() as conn:
+        await conn.execute(
             """
             CREATE TABLE IF NOT EXISTS vpn_access (
                 user_id INTEGER,
@@ -23,49 +22,51 @@ def init_db() -> None:
             )
             """
         )
-        conn.commit()
+        await conn.commit()
 
 
-def add_key(
+async def add_key(
     user_id: int,
     key_id: int,
     access_url: str,
     expires_at: int,
     is_trial: bool,
 ) -> None:
-    with closing(get_connection()) as conn:
-        conn.execute(
+    async with get_connection() as conn:
+        await conn.execute(
             "INSERT OR REPLACE INTO vpn_access (user_id, is_trial, key_id,"
             " access_url, expires_at) VALUES (?, ?, ?, ?, ?)",
             (user_id, int(is_trial), key_id, access_url, expires_at),
         )
-        conn.commit()
+        await conn.commit()
 
 
-def clear_key(user_id: int, is_trial: bool) -> None:
-    with closing(get_connection()) as conn:
-        conn.execute(
+async def clear_key(user_id: int, is_trial: bool) -> None:
+    async with get_connection() as conn:
+        await conn.execute(
             "UPDATE vpn_access SET key_id=NULL, access_url=NULL, "
             "expires_at=NULL WHERE user_id=? AND is_trial=?",
             (user_id, int(is_trial)),
         )
-        conn.commit()
+        await conn.commit()
 
 
-def get_active_key(user_id: int):
-    with closing(get_connection()) as conn:
-        row = conn.execute(
+async def get_active_key(user_id: int):
+    async with get_connection() as conn:
+        cursor = await conn.execute(
             "SELECT access_url, expires_at, is_trial FROM vpn_access "
             "WHERE user_id=? AND key_id IS NOT NULL",
             (user_id,),
-        ).fetchone()
+        )
+        row = await cursor.fetchone()
         return row
 
 
-def has_used_trial(user_id: int) -> bool:
-    with closing(get_connection()) as conn:
-        row = conn.execute(
+async def has_used_trial(user_id: int) -> bool:
+    async with get_connection() as conn:
+        cursor = await conn.execute(
             "SELECT 1 FROM vpn_access WHERE user_id=? AND is_trial=1",
             (user_id,),
-        ).fetchone()
+        )
+        row = await cursor.fetchone()
         return row is not None

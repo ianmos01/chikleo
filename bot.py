@@ -100,7 +100,7 @@ async def schedule_key_deletion(
         except Exception as exc:
             logging.error("Failed to delete Outline key: %s", exc)
         if user_id is not None and is_trial is not None:
-            clear_key(user_id, is_trial)
+            await clear_key(user_id, is_trial)
 
     asyncio.create_task(_remove())
 
@@ -164,7 +164,7 @@ async def cmd_start(message: types.Message):
 
 @dp.callback_query(F.data == "trial")
 async def callback_trial(callback: types.CallbackQuery):
-    if has_used_trial(callback.from_user.id):
+    if await has_used_trial(callback.from_user.id):
         await send_temporary(
             bot,
             callback.message.chat.id,
@@ -176,7 +176,7 @@ async def callback_trial(callback: types.CallbackQuery):
                 label=f"vpn_{callback.from_user.id}"
             )
             expires = int(time.time() + 24 * 60 * 60)
-            add_key(
+            await add_key(
                 callback.from_user.id,
                 key.get("id"),
                 key.get("accessUrl"),
@@ -326,7 +326,7 @@ async def select_method(message: types.Message, state: FSMContext):
         key = await create_outline_key(label=f"vpn_{message.from_user.id}")
         duration = tariff.get("days", 30) * 24 * 60 * 60
         expires = int(time.time() + duration)
-        add_key(
+        await add_key(
             message.from_user.id,
             key.get("id"),
             key.get("accessUrl"),
@@ -350,12 +350,12 @@ async def select_method(message: types.Message, state: FSMContext):
 
 @dp.message(F.text == "\U0001f511 Мои активные ключи")
 async def menu_keys(message: types.Message):
-    row = get_active_key(message.from_user.id)
+    row = await get_active_key(message.from_user.id)
     now_ts = int(time.time())
     if row:
         access_url, expires_at, is_trial = row
         if expires_at is not None and expires_at <= now_ts:
-            clear_key(message.from_user.id, bool(is_trial))
+            await clear_key(message.from_user.id, bool(is_trial))
             text = "Срок действия вашего ключа истёк."
         else:
             text = f"Ваш Outline ключ:\n{access_url}"
@@ -386,7 +386,7 @@ async def menu_help(message: types.Message):
 
 
 async def main() -> None:
-    init_db()
+    await init_db()
     await dp.start_polling(bot)
 
 
