@@ -42,4 +42,14 @@ If you have an [Outline](https://getoutline.org/) VPN server, set the
 `OUTLINE_API_URL` environment variable to your server's API URL. The bot will
 create a new access key when you select "🔑 Мои активные ключи".
 
+## Running Tests
+
+After installing the dependencies, run the test suite with
+[`pytest`](https://docs.pytest.org/):
+
+```bash
+pip install -r requirements.txt
+pytest
+```
+
 
