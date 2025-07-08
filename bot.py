@@ -86,12 +86,14 @@ async def create_outline_key(label: str | None = None) -> dict:
     return await asyncio.to_thread(manager.new, label)
 
 
-async def schedule_key_deletion(
+def schedule_key_deletion(
     key_id: int,
     delay: int = 24 * 60 * 60,
     user_id: int | None = None,
     is_trial: bool | None = None,
-) -> None:
+) -> asyncio.Task:
+    """Schedule Outline key removal and return the created task."""
+
     async def _remove() -> None:
         await asyncio.sleep(delay)
         manager = outline_manager()
@@ -102,7 +104,8 @@ async def schedule_key_deletion(
         if user_id is not None and is_trial is not None:
             await clear_key(user_id, is_trial)
 
-    asyncio.create_task(_remove())
+    task = asyncio.create_task(_remove())
+    return task
 
 
 @dp.message(Command("start"))
@@ -183,7 +186,7 @@ async def callback_trial(callback: types.CallbackQuery):
                 expires,
                 True,
             )
-            await schedule_key_deletion(
+            schedule_key_deletion(
                 key.get("id"),
                 delay=24 * 60 * 60,
                 user_id=callback.from_user.id,
@@ -333,7 +336,7 @@ async def select_method(message: types.Message, state: FSMContext):
             expires,
             False,
         )
-        await schedule_key_deletion(
+        schedule_key_deletion(
             key.get("id"),
             delay=duration,
             user_id=message.from_user.id,

@@ -22,7 +22,7 @@ async def test_schedule_key_deletion_removes_key(task_spy):
     with patch("bot.outline_manager", return_value=manager), patch(
         "bot.asyncio.create_task", side_effect=fake_create_task
     ), patch("bot.asyncio.sleep", new=AsyncMock()) as sleep_mock:
-        await schedule_key_deletion(5, delay=5)
+        task = schedule_key_deletion(5, delay=5)
         await asyncio.gather(*tasks)
         assert any(c.args[0] == 5 for c in sleep_mock.await_args_list)
         manager.delete.assert_called_with(5)
@@ -46,12 +46,12 @@ async def test_callback_trial_creates_key_and_schedules_deletion():
     ), patch("bot.add_key", new=AsyncMock()) as add_key_mock, patch(
         "bot.has_used_trial", new=AsyncMock(return_value=False)
     ), patch(
-        "bot.schedule_key_deletion", AsyncMock()
+        "bot.schedule_key_deletion", Mock()
     ) as sched_mock:
         await callback_trial(callback)
         create_key_mock.assert_awaited_with(label="vpn_1")
         add_key_mock.assert_awaited()
-        sched_mock.assert_awaited_with(
+        sched_mock.assert_called_with(
             key["id"], delay=24 * 60 * 60, user_id=1, is_trial=True
         )
         message.answer.assert_awaited_with("Ваш пробный ключ на 24 часа:\nurl")
