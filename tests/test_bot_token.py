@@ -1,10 +1,12 @@
+"""Tests that missing ``BOT_TOKEN`` raises an error on import."""
+
 import importlib
 import os
 import sys
 
 import pytest
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))  # noqa: E402
 
 
 def test_missing_token_raises_error(monkeypatch):

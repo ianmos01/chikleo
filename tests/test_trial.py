@@ -1,27 +1,22 @@
-import os
-import sys
+"""Tests for trial key workflow and scheduled deletion."""
 
 import asyncio
+import os
+import sys
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, patch, Mock
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))  # noqa: E402
 os.environ.setdefault("BOT_TOKEN", "TEST")
 
-from bot import schedule_key_deletion, callback_trial  # noqa: E402
+from bot import callback_trial, schedule_key_deletion  # noqa: E402
 
 
 @pytest.mark.asyncio
-async def test_schedule_key_deletion_removes_key():
-    tasks = []
-    orig_create_task = asyncio.create_task
-
-    def fake_create_task(coro):
-        task = orig_create_task(coro)
-        tasks.append(task)
-        return task
+async def test_schedule_key_deletion_removes_key(task_spy):
+    tasks, fake_create_task = task_spy
 
     manager = Mock()
     with patch("bot.outline_manager", return_value=manager), patch(
