@@ -21,6 +21,9 @@ TOKEN = os.getenv("BOT_TOKEN")
 
 logging.basicConfig(level=logging.INFO)
 
+if not TOKEN:
+    raise RuntimeError("BOT_TOKEN not configured")
+
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
