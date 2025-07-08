@@ -26,10 +26,17 @@ def init_db() -> None:
         conn.commit()
 
 
-def add_key(user_id: int, key_id: int, access_url: str, expires_at: int, is_trial: bool) -> None:
+def add_key(
+    user_id: int,
+    key_id: int,
+    access_url: str,
+    expires_at: int,
+    is_trial: bool,
+) -> None:
     with closing(get_connection()) as conn:
         conn.execute(
-            "INSERT OR REPLACE INTO vpn_access (user_id, is_trial, key_id, access_url, expires_at) VALUES (?, ?, ?, ?, ?)",
+            "INSERT OR REPLACE INTO vpn_access (user_id, is_trial, key_id,"
+            " access_url, expires_at) VALUES (?, ?, ?, ?, ?)",
             (user_id, int(is_trial), key_id, access_url, expires_at),
         )
         conn.commit()
@@ -38,7 +45,8 @@ def add_key(user_id: int, key_id: int, access_url: str, expires_at: int, is_tria
 def clear_key(user_id: int, is_trial: bool) -> None:
     with closing(get_connection()) as conn:
         conn.execute(
-            "UPDATE vpn_access SET key_id=NULL, access_url=NULL, expires_at=NULL WHERE user_id=? AND is_trial=?",
+            "UPDATE vpn_access SET key_id=NULL, access_url=NULL, "
+            "expires_at=NULL WHERE user_id=? AND is_trial=?",
             (user_id, int(is_trial)),
         )
         conn.commit()
@@ -47,7 +55,8 @@ def clear_key(user_id: int, is_trial: bool) -> None:
 def get_active_key(user_id: int):
     with closing(get_connection()) as conn:
         row = conn.execute(
-            "SELECT access_url, expires_at, is_trial FROM vpn_access WHERE user_id=? AND key_id IS NOT NULL",
+            "SELECT access_url, expires_at, is_trial FROM vpn_access "
+            "WHERE user_id=? AND key_id IS NOT NULL",
             (user_id,),
         ).fetchone()
         return row
