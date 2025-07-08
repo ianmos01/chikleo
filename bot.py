@@ -54,17 +54,29 @@ class BuyVPN(StatesGroup):
 
 
 TARIFFS = {
-    "\U0001f7e1 1 мес — 200\u20bd": {"amount": 200, "code": "1m", "days": 30},
-    "\U0001f7e2 3 мес — 550\u20bd": {"amount": 550, "code": "3m", "days": 90},
-    "\U0001f7e2 6 мес — 1000\u20bd": {
-        "amount": 1000,
+    "\U0001f7e1 1 мес — 199\u20bd": {
+        "amount": 199,
+        "code": "1m",
+        "days": 30,
+        "months": 1,
+    },
+    "\U0001f7e2 3 мес — 529\u20bd": {
+        "amount": 529,
+        "code": "3m",
+        "days": 90,
+        "months": 3,
+    },
+    "\U0001f7e2 6 мес — 949\u20bd": {
+        "amount": 949,
         "code": "6m",
         "days": 180,
+        "months": 6,
     },
-    "\U0001f7e3 12 мес — 1900\u20bd": {
-        "amount": 1900,
+    "\U0001f7e3 12 мес — 1659\u20bd": {
+        "amount": 1659,
         "code": "12m",
         "days": 365,
+        "months": 12,
     },
 }
 
@@ -206,10 +218,8 @@ async def callback_trial(callback: types.CallbackQuery):
 
 
 @dp.callback_query(F.data == "buy_extend")
-async def callback_buy(callback: types.CallbackQuery):
-    await send_temporary(
-        bot, callback.message.chat.id, 'Вы нажали "Купить VPN | Продлить"'
-    )
+async def callback_buy(callback: types.CallbackQuery, state: FSMContext):
+    await menu_buy(callback.message, state)
     await callback.answer()
 
 
@@ -219,8 +229,8 @@ async def cmd_menu(message: types.Message):
 
 
 @dp.message(Command("buy"))
-async def cmd_buy(message: types.Message):
-    await menu_buy(message)
+async def cmd_buy(message: types.Message, state: FSMContext):
+    await menu_buy(message, state)
 
 
 @dp.message(Command("help"))
@@ -251,11 +261,11 @@ async def menu_buy(message: types.Message, state: FSMContext):
     tariff_kb = ReplyKeyboardMarkup(
         keyboard=[
             [
-                KeyboardButton(text="\U0001f7e1 1 мес — 200\u20bd"),
-                KeyboardButton(text="\U0001f7e2 3 мес — 550\u20bd"),
-                KeyboardButton(text="\U0001f7e2 6 мес — 1000\u20bd"),
+                KeyboardButton(text="\U0001f7e1 1 мес — 199\u20bd"),
+                KeyboardButton(text="\U0001f7e2 3 мес — 529\u20bd"),
+                KeyboardButton(text="\U0001f7e2 6 мес — 949\u20bd"),
             ],
-            [KeyboardButton(text="\U0001f7e3 12 мес — 1900\u20bd")],
+            [KeyboardButton(text="\U0001f7e3 12 мес — 1659\u20bd")],
             [KeyboardButton(text="\U0001f4a0 Главное меню")],
         ],
         resize_keyboard=True,
@@ -267,19 +277,14 @@ async def menu_buy(message: types.Message, state: FSMContext):
 
 @dp.message(BuyVPN.waiting_tariff, F.text.in_(TARIFFS.keys()))
 async def select_tariff(message: types.Message, state: FSMContext):
-    await state.update_data(tariff=message.text)
-    pay_kb = ReplyKeyboardMarkup(
-        keyboard=[
-            [KeyboardButton(text="\U0001f4b0 СБП")],
-            [KeyboardButton(text="\U0001f4b3 Карта РФ")],
-            [KeyboardButton(text="\U0001f3e6 Ю.Касса")],
-        ],
-        resize_keyboard=True,
-    )
-    await state.set_state(BuyVPN.waiting_method)
+    info = TARIFFS.get(message.text)
+    months = info.get("months", 1) if info else 1
+    suffix = "месяц" if months == 1 else ("месяца" if months in (2, 3, 4) else "месяцев")
     await message.answer(
-        "\U0001f4ac Выберите способ оплаты:", reply_markup=pay_kb
+        f"Вы выбрали тариф на {months} {suffix}. "
+        "Для оформления напишите: @andekdot_support"
     )
+    await state.clear()
 
 
 @dp.message(BuyVPN.waiting_tariff, F.text == "\U0001f4a0 Главное меню")
