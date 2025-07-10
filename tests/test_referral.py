@@ -54,34 +54,31 @@ async def test_menu_invite_generates_link():
 
 @pytest.mark.asyncio
 async def test_grant_referral_bonus_creates_key():
-    with patch("bot.get_key_info", new=AsyncMock(return_value=None)), patch(
-        "bot.create_outline_key", new=AsyncMock(return_value={"id": 8, "accessUrl": "url"})
-    ) as create_mock, patch(
+    now = 123
+    key = {"id": 8, "accessUrl": "url"}
+    with patch("bot.create_outline_key", new=AsyncMock(return_value=key)) as create_mock, patch(
         "bot.add_key", new=AsyncMock()
     ) as add_key_mock, patch(
         "bot.schedule_key_deletion"
     ) as sched_mock, patch(
-        "bot.bot.send_message", new=AsyncMock()) as send_mock:
+        "bot.bot.send_message", new=AsyncMock()) as send_mock, patch(
+        "bot.time.time", return_value=now):
         await grant_referral_bonus(4)
-        create_mock.assert_awaited_with(label="vpn_4")
-        add_key_mock.assert_awaited()
+        assert create_mock.await_args.kwargs["label"].startswith("ref_bonus_4_")
+        add_key_mock.assert_awaited_with(4, 8, "url", now + REFERRAL_BONUS_DAYS * 24 * 60 * 60, False)
         sched_mock.assert_called_with(8, delay=REFERRAL_BONUS_DAYS * 24 * 60 * 60, user_id=4, is_trial=False)
         send_mock.assert_awaited()
 
 
 @pytest.mark.asyncio
-async def test_grant_referral_bonus_extends_key():
-    now = 100
-    record = (11, "url", 200, 0)
-    with patch("bot.get_key_info", new=AsyncMock(return_value=record)), patch(
-        "bot.update_expiration", new=AsyncMock()
-    ) as upd_mock, patch(
-        "bot.schedule_key_deletion"
-    ) as sched_mock, patch(
-        "bot.bot.send_message", new=AsyncMock()) as send_mock, patch(
-        "bot.time.time", return_value=now):
+async def test_grant_referral_bonus_message_text():
+    key = {"id": 9, "accessUrl": "link"}
+    with patch("bot.create_outline_key", new=AsyncMock(return_value=key)), patch(
+        "bot.add_key", new=AsyncMock()), patch(
+        "bot.schedule_key_deletion"), patch(
+        "bot.time.time", return_value=456), patch(
+        "bot.bot.send_message", new=AsyncMock()) as send_mock:
         await grant_referral_bonus(5)
-        new_exp = 200 + REFERRAL_BONUS_DAYS * 24 * 60 * 60
-        upd_mock.assert_awaited_with(5, False, new_exp)
-        sched_mock.assert_called_with(11, delay=new_exp - now, user_id=5, is_trial=False)
-        send_mock.assert_awaited()
+        msg = send_mock.await_args.args[1]
+        assert "Спасибо, кто-то зашел" in msg
+        assert "link" in msg

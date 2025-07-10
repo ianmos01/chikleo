@@ -153,36 +153,40 @@ def schedule_key_deletion(
 
 
 async def grant_referral_bonus(referrer_id: int) -> None:
-    """Give the referrer extra VPN days."""
+    """Issue a 3 day key for the referrer."""
     bonus_seconds = REFERRAL_BONUS_DAYS * 24 * 60 * 60
-    record = await get_key_info(referrer_id)
     now_ts = int(time.time())
-    if record:
-        key_id, _url, expires_at, is_trial = record
-        base = expires_at if expires_at and expires_at > now_ts else now_ts
-        new_exp = base + bonus_seconds
-        await update_expiration(referrer_id, bool(is_trial), new_exp)
+    label = f"ref_bonus_{referrer_id}_{now_ts}"
+    try:
+        key = await create_outline_key(label=label)
+        expires = now_ts + bonus_seconds
+        await add_key(referrer_id, key.get("id"), key.get("accessUrl"), expires, False)
         schedule_key_deletion(
-            key_id, delay=new_exp - now_ts, user_id=referrer_id, is_trial=bool(is_trial)
+            key.get("id"), delay=bonus_seconds, user_id=referrer_id, is_trial=False
         )
+
+        logging.info(
+            "Issued referral key %s for user %s", key.get("id"), referrer_id
+        )
+
+        kb = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(text="\U0001f4f2 Инструкция", callback_data="help")],
+                [InlineKeyboardButton(text="\U0001f538 Главное меню", callback_data="main_menu")],
+            ]
+        )
+
         await bot.send_message(
             referrer_id,
-            f"Ваш доступ продлён на {REFERRAL_BONUS_DAYS} дня за приглашение друга",
+            "\U0001f511 Спасибо, кто-то зашел по твоей ссылке и теперь ты получаешь "
+            f"{REFERRAL_BONUS_DAYS} дня доступа к VPN \U0001f30d\n\n"
+            "Вот твой ключ:\n"
+            f"{key.get('accessUrl', 'не удалось получить')}\n\n"
+            "\u2705 Вы можете продолжать приглашать друзей и получать ещё +3 дня доступа \u263a\ufe0f",
+            reply_markup=kb,
         )
-    else:
-        try:
-            key = await create_outline_key(label=f"vpn_{referrer_id}")
-            expires = now_ts + bonus_seconds
-            await add_key(referrer_id, key.get("id"), key.get("accessUrl"), expires, False)
-            schedule_key_deletion(
-                key.get("id"), delay=bonus_seconds, user_id=referrer_id, is_trial=False
-            )
-            await bot.send_message(
-                referrer_id,
-                "Ваш бонусный ключ:\n" + key.get("accessUrl", "не удалось получить"),
-            )
-        except Exception as exc:
-            logging.error("Failed to create referral key: %s", exc)
+    except Exception as exc:
+        logging.error("Failed to create referral key: %s", exc)
 
 
 @dp.message(Command("start"))
