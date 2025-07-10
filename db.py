@@ -22,6 +22,14 @@ async def init_db() -> None:
             )
             """
         )
+        await conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS referrals (
+                user_id INTEGER PRIMARY KEY,
+                referrer_id INTEGER
+            )
+            """
+        )
         await conn.commit()
 
 
@@ -70,3 +78,19 @@ async def has_used_trial(user_id: int) -> bool:
         )
         row = await cursor.fetchone()
         return row is not None
+
+
+async def record_referral(user_id: int, referrer_id: int) -> bool:
+    """Save referrer relationship. Return ``True`` if stored."""
+    if user_id == referrer_id:
+        return False
+    async with get_connection() as conn:
+        try:
+            await conn.execute(
+                "INSERT INTO referrals (user_id, referrer_id) VALUES (?, ?)",
+                (user_id, referrer_id),
+            )
+            await conn.commit()
+            return True
+        except aiosqlite.IntegrityError:
+            return False

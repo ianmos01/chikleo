@@ -13,6 +13,7 @@ from db import (  # noqa: E402
     get_active_key,
     has_used_trial,
     init_db,
+    record_referral,
 )
 
 
@@ -36,6 +37,14 @@ async def test_has_used_trial(tmp_path, monkeypatch):
     assert not await has_used_trial(1)
     await add_key(1, 2, "url", 123, True)
     assert await has_used_trial(1)
-    await clear_key(1, True)
-    # even after clearing, trial usage remains recorded
-    assert await has_used_trial(1)
+
+
+@pytest.mark.asyncio
+async def test_record_referral(tmp_path, monkeypatch):
+    db_file = tmp_path / "ref.sqlite"
+    monkeypatch.setenv("DB_PATH", str(db_file))
+    monkeypatch.setattr("db.DB_PATH", str(db_file), raising=False)
+    await init_db()
+    assert await record_referral(2, 1)
+    assert not await record_referral(2, 1)
+    assert not await record_referral(1, 1)

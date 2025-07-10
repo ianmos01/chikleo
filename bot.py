@@ -15,7 +15,14 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram import F
 from outline_api import Manager
 import time
-from db import init_db, add_key, clear_key, has_used_trial, get_active_key
+from db import (
+    init_db,
+    add_key,
+    clear_key,
+    has_used_trial,
+    get_active_key,
+    record_referral,
+)
 
 TOKEN = os.getenv("BOT_TOKEN")
 
@@ -27,9 +34,19 @@ if not TOKEN:
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
+BOT_USERNAME: str | None = None
+
 OUTLINE_API_URL = os.getenv("OUTLINE_API_URL")
 
 DELETE_DELAY = int(os.getenv("DELETE_DELAY", "30"))
+
+
+async def get_bot_username() -> str:
+    global BOT_USERNAME
+    if BOT_USERNAME is None:
+        me = await bot.get_me()
+        BOT_USERNAME = me.username
+    return BOT_USERNAME
 
 
 async def send_temporary(
@@ -123,6 +140,19 @@ def schedule_key_deletion(
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
     first_name = message.from_user.first_name or "друг"
+    args = message.text.split(maxsplit=1)
+    if len(args) > 1 and args[1].startswith("ref"):
+        try:
+            ref_id = int(args[1][3:])
+        except ValueError:
+            ref_id = None
+        if ref_id is not None:
+            if await record_referral(message.from_user.id, ref_id):
+                logging.info(
+                    "User %s joined via referral from %s",
+                    message.from_user.id,
+                    ref_id,
+                )
     await message.answer(f"Привет, {first_name}! \U0001f44b")
 
     text = (
@@ -220,6 +250,12 @@ async def callback_trial(callback: types.CallbackQuery):
 @dp.callback_query(F.data == "buy_extend")
 async def callback_buy(callback: types.CallbackQuery, state: FSMContext):
     await menu_buy(callback.message, state)
+    await callback.answer()
+
+
+@dp.callback_query(F.data == "main_menu")
+async def callback_main_menu(callback: types.CallbackQuery, state: FSMContext | None = None):
+    await cmd_start(callback.message)
     await callback.answer()
 
 
@@ -380,9 +416,22 @@ async def menu_reviews(message: types.Message):
 
 @dp.message(F.text == "\U0001f381 Пригласить")
 async def menu_invite(message: types.Message):
-    await send_temporary(
-        bot, message.chat.id, 'Раздел "Пригласить" пока в разработке'
+    first_name = message.from_user.first_name or "друг"
+    username = await get_bot_username()
+    link = f"https://t.me/{username}?start=ref{message.from_user.id}"
+    text = (
+        f"{first_name}, ты знал(а)\U0001f914, что за каждого приглашенного друга, "
+        "ты получишь \U0001f4c5 7 дней VPN \U0001f310 в подарок \U0001f381?\n\n"
+        "Вот твоя реферальная ссылка \U0001f60a:\n"
+        f"{link}"
     )
+    inline_kb = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="\U0001f4e3 Поделиться", switch_inline_query=link)],
+            [InlineKeyboardButton(text="\U0001f4a0 Главное меню", callback_data="main_menu")],
+        ]
+    )
+    await message.answer(text, reply_markup=inline_kb)
 
 
 @dp.message(F.text == "\U0001f198 Помощь")
