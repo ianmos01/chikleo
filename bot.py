@@ -22,6 +22,8 @@ from db import (
     has_used_trial,
     get_active_key,
     record_referral,
+    get_key_info,
+    update_expiration,
 )
 
 TOKEN = os.getenv("BOT_TOKEN")
@@ -39,6 +41,12 @@ BOT_USERNAME: str | None = None
 OUTLINE_API_URL = os.getenv("OUTLINE_API_URL")
 
 DELETE_DELAY = int(os.getenv("DELETE_DELAY", "30"))
+
+# Number of days granted to a referrer for each invited user
+REFERRAL_BONUS_DAYS = 3
+
+# Track scheduled deletion tasks so we can reschedule them
+DELETION_TASKS: dict[tuple[int, bool], asyncio.Task] = {}
 
 
 async def get_bot_username() -> str:
@@ -132,9 +140,49 @@ def schedule_key_deletion(
             logging.error("Failed to delete Outline key: %s", exc)
         if user_id is not None and is_trial is not None:
             await clear_key(user_id, is_trial)
+            DELETION_TASKS.pop((user_id, is_trial), None)
 
+    if user_id is not None and is_trial is not None:
+        old = DELETION_TASKS.pop((user_id, is_trial), None)
+        if old:
+            old.cancel()
     task = asyncio.create_task(_remove())
+    if user_id is not None and is_trial is not None:
+        DELETION_TASKS[(user_id, is_trial)] = task
     return task
+
+
+async def grant_referral_bonus(referrer_id: int) -> None:
+    """Give the referrer extra VPN days."""
+    bonus_seconds = REFERRAL_BONUS_DAYS * 24 * 60 * 60
+    record = await get_key_info(referrer_id)
+    now_ts = int(time.time())
+    if record:
+        key_id, _url, expires_at, is_trial = record
+        base = expires_at if expires_at and expires_at > now_ts else now_ts
+        new_exp = base + bonus_seconds
+        await update_expiration(referrer_id, bool(is_trial), new_exp)
+        schedule_key_deletion(
+            key_id, delay=new_exp - now_ts, user_id=referrer_id, is_trial=bool(is_trial)
+        )
+        await bot.send_message(
+            referrer_id,
+            f"Ваш доступ продлён на {REFERRAL_BONUS_DAYS} дня за приглашение друга",
+        )
+    else:
+        try:
+            key = await create_outline_key(label=f"vpn_{referrer_id}")
+            expires = now_ts + bonus_seconds
+            await add_key(referrer_id, key.get("id"), key.get("accessUrl"), expires, False)
+            schedule_key_deletion(
+                key.get("id"), delay=bonus_seconds, user_id=referrer_id, is_trial=False
+            )
+            await bot.send_message(
+                referrer_id,
+                "Ваш бонусный ключ:\n" + key.get("accessUrl", "не удалось получить"),
+            )
+        except Exception as exc:
+            logging.error("Failed to create referral key: %s", exc)
 
 
 @dp.message(Command("start"))
@@ -153,6 +201,7 @@ async def cmd_start(message: types.Message):
                     message.from_user.id,
                     ref_id,
                 )
+                await grant_referral_bonus(ref_id)
     await message.answer(f"Привет, {first_name}! \U0001f44b")
 
     text = (
@@ -421,7 +470,7 @@ async def menu_invite(message: types.Message):
     link = f"https://t.me/{username}?start=ref{message.from_user.id}"
     text = (
         f"{first_name}, ты знал(а)\U0001f914, что за каждого приглашенного друга, "
-        "ты получишь \U0001f4c5 7 дней VPN \U0001f310 в подарок \U0001f381?\n\n"
+        f"ты получишь \U0001f4c5 {REFERRAL_BONUS_DAYS} дня VPN \U0001f310 в подарок \U0001f381?\n\n"
         "Вот твоя реферальная ссылка \U0001f60a:\n"
         f"{link}"
     )
