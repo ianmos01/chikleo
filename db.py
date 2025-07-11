@@ -193,10 +193,10 @@ async def get_users_stats():
         cursor = await conn.execute(
             "SELECT "
             "COUNT(*) as total, "
-            "SUM(CASE WHEN expires_at > ? THEN 1 ELSE 0 END) as active, "
-            "SUM(CASE WHEN is_trial=1 AND expires_at > ? THEN 1 ELSE 0 END) as trial, "
-            "SUM(CASE WHEN is_paid=1 AND expires_at > ? THEN 1 ELSE 0 END) as paid, "
-            "SUM(CASE WHEN expires_at <= ? THEN 1 ELSE 0 END) as expired "
+            "COALESCE(SUM(CASE WHEN expires_at > ? THEN 1 ELSE 0 END), 0) as active, "
+            "COALESCE(SUM(CASE WHEN is_trial=1 AND expires_at > ? THEN 1 ELSE 0 END), 0) as trial, "
+            "COALESCE(SUM(CASE WHEN is_paid=1 AND expires_at > ? THEN 1 ELSE 0 END), 0) as paid, "
+            "COALESCE(SUM(CASE WHEN expires_at <= ? THEN 1 ELSE 0 END), 0) as expired "
             "FROM users",
             (now, now, now, now),
         )
