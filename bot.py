@@ -71,7 +71,6 @@ async def send_temporary(
     return msg
 
 
-
 def outline_manager() -> Manager:
     if not OUTLINE_API_URL:
         raise RuntimeError("OUTLINE_API_URL not configured")
@@ -125,14 +124,20 @@ async def grant_referral_bonus(referrer_id: int) -> None:
             key.get("id"), delay=bonus_seconds, user_id=referrer_id, is_trial=False
         )
 
-        logging.info(
-            "Issued referral key %s for user %s", key.get("id"), referrer_id
-        )
+        logging.info("Issued referral key %s for user %s", key.get("id"), referrer_id)
 
         kb = InlineKeyboardMarkup(
             inline_keyboard=[
-                [InlineKeyboardButton(text="\U0001f4f2 Инструкция", callback_data="help")],
-                [InlineKeyboardButton(text="\U0001f538 Главное меню", callback_data="main_menu")],
+                [
+                    InlineKeyboardButton(
+                        text="\U0001f4f2 Инструкция", callback_data="help"
+                    )
+                ],
+                [
+                    InlineKeyboardButton(
+                        text="\U0001f538 Главное меню", callback_data="main_menu"
+                    )
+                ],
             ]
         )
 
@@ -194,7 +199,10 @@ async def cmd_start(message: types.Message):
 
     reply_kb = ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="\U0001f511 Мои активные ключи")],
+            [
+                KeyboardButton(text="\U0001f6d2 Купить VPN | \U0001f4c5 Продлить"),
+                KeyboardButton(text="\U0001f511 Мои активные ключи"),
+            ],
             [
                 KeyboardButton(text="\U0001f9d1\u200d\U0001f4ac Отзывы"),
                 KeyboardButton(text="\U0001f381 Пригласить"),
@@ -218,9 +226,7 @@ async def callback_trial(callback: types.CallbackQuery):
         )
     else:
         try:
-            key = await create_outline_key(
-                label=f"vpn_{callback.from_user.id}"
-            )
+            key = await create_outline_key(label=f"vpn_{callback.from_user.id}")
             expires = int(time.time() + 24 * 60 * 60)
             await add_key(
                 callback.from_user.id,
@@ -283,9 +289,42 @@ async def menu_keys(message: types.Message):
 
 @dp.message(F.text == "\U0001f9d1\u200d\U0001f4ac Отзывы")
 async def menu_reviews(message: types.Message):
-    await send_temporary(
-        bot, message.chat.id, 'Раздел "Отзывы" пока в разработке'
+    await send_temporary(bot, message.chat.id, 'Раздел "Отзывы" пока в разработке')
+
+
+@dp.message(F.text == "\U0001f6d2 Купить VPN | \U0001f4c5 Продлить")
+async def menu_buy(message: types.Message):
+    text = (
+        "\U0001f525 Оформляя подписку на Premium VPN от Мировые анекдоты — "
+        "вы получаете: \U0001f447\n\n"
+        "└ 🚀 Максимальную скорость и стабильное соединение  \n"
+        "└ 👥 Оперативную поддержку в чате — @andekdot_support  \n"
+        "└ 🖥 Доступ с любых устройств — iOS, Android, Windows, MacOS, Android TV  \n"
+        "└ 🔑 Один ключ — одно устройство (всё прозрачно)  \n"
+        "└ 🛠 Подробная инструкция + видео — запустите VPN за 2 минуты  \n"
+        "└ ✅ Безлимитный трафик — никаких ограничений  \n"
+        "└ 🔕 Без рекламы — ничто не мешает  \n"
+        "└ ⛔️ Без автосписаний — всё под вашим контролем\n\n"
+        "🎥 Как оплатить подписку?  \n"
+        "👉 Смотрите видео: тык сюда\n\n"
+        "💡 Совет: чем дольше срок, тем ниже цена за месяц 😉  \n"
+        "▶️ Выберите нужный тариф ниже и подключайтесь уже сегодня!"
     )
+
+    tariff_kb = ReplyKeyboardMarkup(
+        keyboard=[
+            [
+                KeyboardButton(text="\U0001f7e1 1 мес — 199\u20bd"),
+                KeyboardButton(text="\U0001f7e2 3 мес — 529\u20bd"),
+                KeyboardButton(text="\U0001f7e2 6 мес — 949\u20bd"),
+            ],
+            [KeyboardButton(text="\U0001f7e3 12 мес — 1659\u20bd")],
+            [KeyboardButton(text="\U0001f4a0 Главное меню")],
+        ],
+        resize_keyboard=True,
+    )
+
+    await message.answer(text, reply_markup=tariff_kb)
 
 
 @dp.message(F.text == "\U0001f381 Пригласить")
@@ -301,8 +340,16 @@ async def menu_invite(message: types.Message):
     )
     inline_kb = InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="\U0001f4e3 Поделиться", switch_inline_query=link)],
-            [InlineKeyboardButton(text="\U0001f4a0 Главное меню", callback_data="main_menu")],
+            [
+                InlineKeyboardButton(
+                    text="\U0001f4e3 Поделиться", switch_inline_query=link
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text="\U0001f4a0 Главное меню", callback_data="main_menu"
+                )
+            ],
         ]
     )
     await message.answer(text, reply_markup=inline_kb)
@@ -310,9 +357,12 @@ async def menu_invite(message: types.Message):
 
 @dp.message(F.text == "\U0001f198 Помощь")
 async def menu_help(message: types.Message):
-    await send_temporary(
-        bot, message.chat.id, 'Раздел "Помощь" пока в разработке'
-    )
+    await send_temporary(bot, message.chat.id, 'Раздел "Помощь" пока в разработке')
+
+
+@dp.message(F.text == "\U0001f4a0 Главное меню")
+async def back_to_menu(message: types.Message):
+    await cmd_start(message)
 
 
 async def main() -> None:
