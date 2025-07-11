@@ -126,7 +126,7 @@ async def send_activation_prompt(chat_id: int, access_url: str, expires_at: int)
     text = (
         f"\U0001f389 \u0414\u043e\u0441\u0442\u0443\u043f \u0430\u043a\u0442\u0438\u0432\u0438\u0440\u043e\u0432\u0430\u043d \u0434\u043e {date_str}\n\n"
         "\U0001f511 \u0412\u0430\u0448 VPN-\u043a\u043b\u044e\u0447:\n"
-        f"<a href=\"{access_url}\">{access_url}</a>\n\n"
+        f"{access_url}\n\n"
         "\U0001f4f2 \u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0441\u0432\u043e\u0451 \u0443\u0441\u0442\u0440\u043e\u0439\u0441\u0442\u0432\u043e, \u0447\u0442\u043e\u0431\u044b \u043f\u043e\u043b\u0443\u0447\u0438\u0442\u044c \u043a\u043b\u0438\u0435\u043d\u0442 \u0438 \u0438\u043d\u0441\u0442\u0440\u0443\u043a\u0446\u0438\u044e:"
     )
 
@@ -146,7 +146,7 @@ async def send_activation_prompt(chat_id: int, access_url: str, expires_at: int)
         ]
     )
 
-    await bot.send_message(chat_id, text, parse_mode="HTML", reply_markup=kb)
+    await bot.send_message(chat_id, text, reply_markup=kb)
 
 
 async def grant_referral_bonus(referrer_id: int) -> None:
@@ -286,11 +286,11 @@ async def callback_device(callback: types.CallbackQuery):
         return
     _, access_url, _, _ = row
     text = (
-        f"\u2705 \u0421\u043a\u0430\u0447\u0430\u0442\u044c Outline Client: <a href=\"{link}\">{link}</a>\n\n"
-        f"\u2705 \u0412\u0430\u0448 \u043a\u043b\u044e\u0447:\n<a href=\"{access_url}\">{access_url}</a>\n\n"
+        f"\u2705 \u0421\u043a\u0430\u0447\u0430\u0442\u044c Outline Client: {link}\n\n"
+        f"\u2705 \u0412\u0430\u0448 \u043a\u043b\u044e\u0447:\n{access_url}\n\n"
         "\u041d\u0430\u0436\u043c\u0438\u0442\u0435 '+' , \u0432\u044b\u0431\u0435\u0440\u0438\u0442\u0435 '\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u043a\u043b\u044e\u0447 \u0432\u0440\u0443\u0447\u043d\u0443\u044e', \u0432\u0441\u0442\u0430\u0432\u044c\u0442\u0435 \u0441\u0441\u044b\u043b\u043a\u0443"
     )
-    await callback.message.answer(text, parse_mode="HTML")
+    await callback.message.answer(text)
     await callback.answer()
 
 
