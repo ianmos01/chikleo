@@ -48,7 +48,9 @@ async def test_menu_invite_generates_link():
     args, kwargs = message.answer.call_args
     assert "https://t.me/VPNos_bot?start=ref4" in args[0]
     kb = kwargs["reply_markup"]
-    assert kb.inline_keyboard[0][0].switch_inline_query == "https://t.me/VPNos_bot?start=ref4"
+    button_url = kb.inline_keyboard[0][0].url
+    assert button_url.startswith("https://t.me/share/url")
+    assert "url=https%3A%2F%2Ft.me%2FVPNos_bot%3Fstart%3Dref4" in button_url
     assert kb.inline_keyboard[1][0].callback_data == "main_menu"
 
 

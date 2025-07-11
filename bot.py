@@ -10,6 +10,7 @@ from aiogram.types import (
     KeyboardButton,
     ReplyKeyboardMarkup,
 )
+from urllib.parse import quote_plus
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram import F
@@ -485,9 +486,13 @@ async def menu_invite(message: types.Message):
         "Вот твоя реферальная ссылка \U0001f60a:\n"
         f"{link}"
     )
+    share_url = (
+        "https://t.me/share/url?url="
+        f"{quote_plus(link)}&text={quote_plus(link)}"
+    )
     inline_kb = InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="\U0001f4e3 Поделиться", switch_inline_query=link)],
+            [InlineKeyboardButton(text="\U0001f4e3 Поделиться", url=share_url)],
             [InlineKeyboardButton(text="\U0001f4a0 Главное меню", callback_data="main_menu")],
         ]
     )
