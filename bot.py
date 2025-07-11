@@ -364,6 +364,13 @@ async def menu_buy(message: types.Message, state: FSMContext):
     await state.set_state(BuyVPN.waiting_tariff)
 
 
+@dp.message(BuyVPN.waiting_tariff, F.text == "\U0001f6d2 Купить VPN | \U0001f4c5 Продлить")
+@dp.message(BuyVPN.waiting_method, F.text == "\U0001f6d2 Купить VPN | \U0001f4c5 Продлить")
+async def restart_buy(message: types.Message, state: FSMContext):
+    await state.clear()
+    await menu_buy(message, state)
+
+
 @dp.message(BuyVPN.waiting_tariff, F.text.in_(TARIFFS.keys()))
 async def select_tariff(message: types.Message, state: FSMContext):
     info = TARIFFS.get(message.text)
