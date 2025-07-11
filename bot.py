@@ -88,7 +88,13 @@ def outline_manager() -> Manager:
 
 async def create_outline_key(label: str | None = None) -> dict:
     manager = outline_manager()
-    return await asyncio.to_thread(manager.new, label)
+    key = await asyncio.to_thread(manager.new, label)
+    if label and "id" in key:
+        try:
+            await asyncio.to_thread(manager.rename, key["id"], label)
+        except Exception as exc:
+            logging.error("Failed to rename Outline key: %s", exc)
+    return key
 
 
 def schedule_key_deletion(
