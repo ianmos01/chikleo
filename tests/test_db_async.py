@@ -48,3 +48,13 @@ async def test_record_referral(tmp_path, monkeypatch):
     assert await record_referral(2, 1)
     assert not await record_referral(2, 1)
     assert not await record_referral(1, 1)
+
+
+@pytest.mark.asyncio
+async def test_record_referral_existing_user(tmp_path, monkeypatch):
+    db_file = tmp_path / "ref.sqlite"
+    monkeypatch.setenv("DB_PATH", str(db_file))
+    monkeypatch.setattr("db.DB_PATH", str(db_file), raising=False)
+    await init_db()
+    await add_key(3, 7, "url", 999, False)
+    assert not await record_referral(3, 1)

@@ -80,9 +80,22 @@ async def has_used_trial(user_id: int) -> bool:
         return row is not None
 
 
+async def has_vpn_history(user_id: int) -> bool:
+    """Return True if the user ever had VPN access."""
+    async with get_connection() as conn:
+        cursor = await conn.execute(
+            "SELECT 1 FROM vpn_access WHERE user_id=?",
+            (user_id,),
+        )
+        row = await cursor.fetchone()
+        return row is not None
+
+
 async def record_referral(user_id: int, referrer_id: int) -> bool:
     """Save referrer relationship. Return ``True`` if stored."""
     if user_id == referrer_id:
+        return False
+    if await has_vpn_history(user_id):
         return False
     async with get_connection() as conn:
         try:
