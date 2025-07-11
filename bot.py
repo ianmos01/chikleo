@@ -451,7 +451,8 @@ async def menu_invite(message: types.Message):
         inline_keyboard=[
             [
                 InlineKeyboardButton(
-                    text="\U0001f4e3 Поделиться", switch_inline_query=link
+                    text="\U0001f4e3 Поделиться",
+                    url=f"https://t.me/share/url?url={link}",
                 )
             ],
             [
