@@ -42,6 +42,19 @@ If you have an [Outline](https://getoutline.org/) VPN server, set the
 `OUTLINE_API_URL` environment variable to your server's API URL. The bot will
 create a new access key when you select "🔑 Мои активные ключи".
 
+## Persistent data on Railway
+
+To keep the SQLite database across restarts, create a Railway volume and mount
+it in the container, for example at `/data`. Then set the `DB_PATH` environment
+variable to a location on that volume:
+
+```bash
+DB_PATH=/data/vpn.sqlite
+```
+
+The application will create the directory for the database file if it does not
+exist.
+
 ## Running Tests
 
 After installing the dependencies, run the test suite with
