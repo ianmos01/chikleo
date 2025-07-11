@@ -15,6 +15,25 @@ user can only obtain a trial VPN once and paid keys expire automatically.
   - "🆘 Помощь"
 - Example responses for each menu item and inline button.
 
+## Admin commands
+
+Basic administration features are implemented in `admin.py`. Add your Telegram
+user ID to the `ADMINS` list inside that file and include the router in the bot
+application:
+
+```python
+from admin import router as admin_router
+dp.include_router(admin_router)
+```
+
+After that administrators can use special commands:
+
+- `/users` &mdash; show aggregated statistics about all users.
+- `/userlist <page>` &mdash; display detailed information about users by page
+  (20 entries per page).
+
+Only users whose IDs are present in `ADMINS` can run these commands.
+
 ## Requirements
 
 Install dependencies from `requirements.txt`:
