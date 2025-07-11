@@ -21,8 +21,9 @@ async def test_menu_keys_shows_expiration():
          patch("bot.send_temporary", new=AsyncMock()) as send_mock, \
          patch("bot.time.time", return_value=0):
         await menu_keys(message)
-    send_mock.assert_awaited()
-    text = send_mock.await_args.args[2]
-    assert "url" in text
-    assert date_str in text
+   assert len(send_mock.await_args_list) == 2
+    first_text = send_mock.await_args_list[0].args[2]
+    second_text = send_mock.await_args_list[1].args[2]
+    assert date_str in first_text
+    assert "url" == second_text
 
