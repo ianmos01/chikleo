@@ -8,7 +8,6 @@ user can only obtain a trial VPN once and paid keys expire automatically.
 
 - `/start` and `/menu` commands show information about "Мировые анекдоты" VPN service and display an inline keyboard.
 - Reply keyboard with quick access to common sections:
-  - "🛒 Купить VPN | 📅 Продлить"
   - "🔑 Мои активные ключи"
   - "🧑‍💬 Отзывы"
   - "🎁 Пригласить"
