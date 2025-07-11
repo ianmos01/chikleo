@@ -6,7 +6,7 @@ from db import get_all_users, get_users_stats
 
 import time
 
-ADMINS = [123456789, 987654321]
+ADMINS = [124508057]
 
 
 def is_admin(user_id: int) -> bool:
