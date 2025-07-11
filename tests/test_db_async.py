@@ -2,6 +2,7 @@
 
 import os
 import sys
+import shutil
 
 import pytest
 
@@ -58,3 +59,18 @@ async def test_record_referral_existing_user(tmp_path, monkeypatch):
     await init_db()
     await add_key(3, 7, "url", 999, False)
     assert not await record_referral(3, 1)
+
+
+@pytest.mark.asyncio
+async def test_init_db_creates_directory(tmp_path, monkeypatch):
+    """Ensure init_db creates missing parent directories."""
+    db_file = tmp_path / "subdir" / "db.sqlite"
+    monkeypatch.setenv("DB_PATH", str(db_file))
+    monkeypatch.setattr("db.DB_PATH", str(db_file), raising=False)
+    # create then remove directory to simulate missing path
+    db_file.parent.mkdir()
+    shutil.rmtree(db_file.parent)
+    assert not db_file.parent.exists()
+    await init_db()
+    assert db_file.exists()
+    assert db_file.parent.exists()
