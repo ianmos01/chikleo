@@ -170,7 +170,7 @@ async def notify_expirations_loop(interval: int = 60 * 60) -> None:
         async with get_connection() as conn:
             cursor = await conn.execute(
                 "SELECT user_id, expires_at FROM vpn_access "
-                "WHERE key_id IS NOT NULL AND expires_at IS NOT NULL AND is_trial=0"
+                "WHERE key_id IS NOT NULL AND expires_at IS NOT NULL"
             )
             rows = await cursor.fetchall()
         for user_id, expires_at in rows:
