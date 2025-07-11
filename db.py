@@ -1,4 +1,5 @@
 import os
+import time
 import aiosqlite
 
 DB_PATH = os.getenv("DB_PATH", "vpn.sqlite")
@@ -22,6 +23,18 @@ async def init_db() -> None:
                 access_url TEXT,
                 expires_at INTEGER,
                 PRIMARY KEY (user_id, is_trial)
+            )
+            """
+        )
+        await conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS users (
+                user_id INTEGER PRIMARY KEY,
+                username TEXT,
+                is_trial INTEGER,
+                is_paid INTEGER,
+                created_at INTEGER,
+                expires_at INTEGER
             )
             """
         )
@@ -159,3 +172,35 @@ async def set_last_notification(user_id: int, ts: int) -> None:
             (user_id, ts),
         )
         await conn.commit()
+
+
+async def get_all_users(offset: int = 0, limit: int = 20):
+    """Return a list of users with basic subscription info."""
+    async with get_connection() as conn:
+        cursor = await conn.execute(
+            "SELECT user_id, username, is_trial, is_paid, created_at, expires_at "
+            "FROM users ORDER BY created_at DESC LIMIT ? OFFSET ?",
+            (limit, offset),
+        )
+        rows = await cursor.fetchall()
+        return rows
+
+
+async def get_users_stats():
+    """Return aggregate statistics about users."""
+    now = int(time.time())
+    async with get_connection() as conn:
+        cursor = await conn.execute(
+            "SELECT "
+            "COUNT(*) as total, "
+            "SUM(CASE WHEN expires_at > ? THEN 1 ELSE 0 END) as active, "
+            "SUM(CASE WHEN is_trial=1 AND expires_at > ? THEN 1 ELSE 0 END) as trial, "
+            "SUM(CASE WHEN is_paid=1 AND expires_at > ? THEN 1 ELSE 0 END) as paid, "
+            "SUM(CASE WHEN expires_at <= ? THEN 1 ELSE 0 END) as expired "
+            "FROM users",
+            (now, now, now, now),
+        )
+        row = await cursor.fetchone()
+        if row:
+            return row
+        return (0, 0, 0, 0, 0)
