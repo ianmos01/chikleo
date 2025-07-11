@@ -13,6 +13,7 @@ from aiogram.types import (
 from aiogram import F
 from outline_api import Manager
 import time
+from admin import router as admin_router
 from db import (
     init_db,
     add_key,
@@ -477,6 +478,7 @@ async def back_to_menu(message: types.Message):
 
 async def main() -> None:
     await init_db()
+    dp.include_router(admin_router)
     asyncio.create_task(notify_expirations_loop())
     await dp.start_polling(bot)
 
