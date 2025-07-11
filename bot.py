@@ -121,12 +121,14 @@ def schedule_key_deletion(
 
 
 async def send_activation_prompt(chat_id: int, access_url: str, expires_at: int) -> None:
-    """Send activation info and device selection keyboard."""
+    """Send activation info and device selection keyboard in three messages."""
     date_str = time.strftime("%d.%m.%Y", time.localtime(expires_at))
-    text = (
+    first = (
         f"\U0001f389 \u0414\u043e\u0441\u0442\u0443\u043f \u0430\u043a\u0442\u0438\u0432\u0438\u0440\u043e\u0432\u0430\u043d \u0434\u043e {date_str}\n\n"
-        "\U0001f511 \u0412\u0430\u0448 VPN-\u043a\u043b\u044e\u0447:\n"
-        f"{access_url}\n\n"
+        "\U0001f511 \u0412\u0430\u0448 VPN-\u043a\u043b\u044e\u0447:"
+    )
+    second = access_url
+    third = (
         "\U0001f4f2 \u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0441\u0432\u043e\u0451 \u0443\u0441\u0442\u0440\u043e\u0439\u0441\u0442\u0432\u043e, \u0447\u0442\u043e\u0431\u044b \u043f\u043e\u043b\u0443\u0447\u0438\u0442\u044c \u043a\u043b\u0438\u0435\u043d\u0442 \u0438 \u0438\u043d\u0441\u0442\u0440\u0443\u043a\u0446\u0438\u044e:"
     )
 
@@ -146,7 +148,9 @@ async def send_activation_prompt(chat_id: int, access_url: str, expires_at: int)
         ]
     )
 
-    await bot.send_message(chat_id, text, reply_markup=kb)
+    await bot.send_message(chat_id, first)
+    await bot.send_message(chat_id, second)
+    await bot.send_message(chat_id, third, reply_markup=kb)
 
 
 async def grant_referral_bonus(referrer_id: int) -> None:
@@ -285,12 +289,17 @@ async def callback_device(callback: types.CallbackQuery):
         await callback.answer()
         return
     _, access_url, _, _ = row
-    text = (
+    first = (
         f"\u2705 \u0421\u043a\u0430\u0447\u0430\u0442\u044c Outline Client: {link}\n\n"
-        f"\u2705 \u0412\u0430\u0448 \u043a\u043b\u044e\u0447:\n{access_url}\n\n"
-        "\u041d\u0430\u0436\u043c\u0438\u0442\u0435 '+' , \u0432\u044b\u0431\u0435\u0440\u0438\u0442\u0435 '\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u043a\u043b\u044e\u0447 \u0432\u0440\u0443\u0447\u043d\u0443\u044e', \u0432\u0441\u0442\u0430\u0432\u044c\u0442\u0435 \u0441\u0441\u044b\u043b\u043a\u0443"
+        "\u2705 \u0412\u0430\u0448 \u043a\u043b\u044e\u0447:"
     )
-    await callback.message.answer(text)
+    second = access_url
+    third = (
+        "\u041d\u0430\u0436\u043c\u0438\u0442\u0435 '+' , \u0432\u044b\u0431\u0435\u0440\u0438\u0442\u0435 '\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u043a\u043b\u044e\u0447 \u0432\u0440\u0443\u0447\u043d\u0443\u044e', \u0432\u0441\u0442\u0430\u0432\u044c\u0442\u0435 \u0441\u0441\u044b\u043b\u043a\u0443 \u043a\u043e\u0442\u043e\u0440\u0443\u044e \u043e\u0442\u043f\u0440\u0430\u0432\u0438\u043b\u0438 \u0432\u044b\u0448\u0435\n\u0413\u043e\u0442\u043e\u0432\u043e, \u0442\u0435\u043f\u0435\u0440\u044c VPN \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d \u043d\u0430 \u0432\u0430\u0448\u0435 \u0443\u0441\u0442\u0440\u043e\u0439\u0441\u0442\u0432\u043e"
+    )
+    await callback.message.answer(first)
+    await callback.message.answer(second)
+    await callback.message.answer(third)
     await callback.answer()
 
 

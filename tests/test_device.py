@@ -23,7 +23,7 @@ async def test_callback_device_sends_instructions():
     with patch("bot.get_key_info", new=AsyncMock(return_value=(7, "url", 0, False))):
         await callback_device(callback)
     message.answer.assert_awaited()
-    args, _ = message.answer.await_args
-    assert DEVICE_LINKS["android"] in args[0]
-    assert "url" in args[0]
+    texts = [c.args[0] for c in message.answer.await_args_list]
+    assert any(DEVICE_LINKS["android"] in t for t in texts)
+    assert any("url" in t for t in texts)
     callback.answer.assert_awaited()

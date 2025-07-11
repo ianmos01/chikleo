@@ -79,6 +79,7 @@ async def test_grant_referral_bonus_message_text():
         "bot.time.time", return_value=456), patch(
         "bot.bot.send_message", new=AsyncMock()) as send_mock:
         await grant_referral_bonus(5)
-        msg = send_mock.await_args.args[1]
-        assert "\u0434\u043e\u0441\u0442\u0443\u043f \u0430\u043a\u0442\u0438\u0432\u0438\u0440\u043e\u0432\u0430\u043d" in msg.lower()
-        assert "link" in msg
+        texts = [c.args[1] for c in send_mock.await_args_list]
+        combined = "\n".join(texts).lower()
+        assert "\u0434\u043e\u0441\u0442\u0443\u043f \u0430\u043a\u0442\u0438\u0432\u0438\u0440\u043e\u0432\u0430\u043d" in combined
+        assert "link" in "\n".join(texts)
