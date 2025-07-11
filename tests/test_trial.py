@@ -47,12 +47,14 @@ async def test_callback_trial_creates_key_and_schedules_deletion():
         "bot.has_used_trial", new=AsyncMock(return_value=False)
     ), patch(
         "bot.schedule_key_deletion", Mock()
-    ) as sched_mock:
+    ) as sched_mock, patch(
+        "bot.bot.send_message", new=AsyncMock()
+    ) as send_mock:
         await callback_trial(callback)
         create_key_mock.assert_awaited_with(label="vpn_1")
         add_key_mock.assert_awaited()
         sched_mock.assert_called_with(
             key["id"], delay=24 * 60 * 60, user_id=1, is_trial=True
         )
-        message.answer.assert_awaited_with("Ваш пробный ключ на 24 часа:\nurl")
+        send_mock.assert_awaited()
         callback.answer.assert_awaited()

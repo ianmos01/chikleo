@@ -46,6 +46,15 @@ REFERRAL_BONUS_DAYS = 3
 # Track scheduled deletion tasks so we can reschedule them
 DELETION_TASKS: dict[tuple[int, bool], asyncio.Task] = {}
 
+# Device links for Outline clients
+DEVICE_LINKS = {
+    "android": "https://play.google.com/store/apps/details?id=org.outline.android.client",
+    "ios": "https://apps.apple.com/app/outline-app/id1356177741",
+    "windows": "https://getoutline.org/",
+    "macos": "https://getoutline.org/",
+    "androidtv": "https://play.google.com/store/apps/details?id=org.outline.android.client",
+}
+
 
 async def get_bot_username() -> str:
     global BOT_USERNAME
@@ -111,6 +120,35 @@ def schedule_key_deletion(
     return task
 
 
+async def send_activation_prompt(chat_id: int, access_url: str, expires_at: int) -> None:
+    """Send activation info and device selection keyboard."""
+    date_str = time.strftime("%d.%m.%Y", time.localtime(expires_at))
+    text = (
+        f"\U0001f389 \u0414\u043e\u0441\u0442\u0443\u043f \u0430\u043a\u0442\u0438\u0432\u0438\u0440\u043e\u0432\u0430\u043d \u0434\u043e {date_str}\n\n"
+        "\U0001f511 \u0412\u0430\u0448 VPN-\u043a\u043b\u044e\u0447:\n"
+        f"<a href=\"{access_url}\">{access_url}</a>\n\n"
+        "\U0001f4f2 \u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0441\u0432\u043e\u0451 \u0443\u0441\u0442\u0440\u043e\u0439\u0441\u0442\u0432\u043e, \u0447\u0442\u043e\u0431\u044b \u043f\u043e\u043b\u0443\u0447\u0438\u0442\u044c \u043a\u043b\u0438\u0435\u043d\u0442 \u0438 \u0438\u043d\u0441\u0442\u0440\u0443\u043a\u0446\u0438\u044e:"
+    )
+
+    kb = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="\U0001f4f1 Android", callback_data="device_android"),
+                InlineKeyboardButton(text="\U0001f34f iOS", callback_data="device_ios"),
+            ],
+            [
+                InlineKeyboardButton(text="\U0001f4bb Windows", callback_data="device_windows"),
+                InlineKeyboardButton(text="\U0001f5a5 MacOS", callback_data="device_macos"),
+            ],
+            [
+                InlineKeyboardButton(text="\U0001f4fa Android TV", callback_data="device_androidtv"),
+            ],
+        ]
+    )
+
+    await bot.send_message(chat_id, text, parse_mode="HTML", reply_markup=kb)
+
+
 async def grant_referral_bonus(referrer_id: int) -> None:
     """Issue a 3 day key for the referrer."""
     bonus_seconds = REFERRAL_BONUS_DAYS * 24 * 60 * 60
@@ -126,29 +164,10 @@ async def grant_referral_bonus(referrer_id: int) -> None:
 
         logging.info("Issued referral key %s for user %s", key.get("id"), referrer_id)
 
-        kb = InlineKeyboardMarkup(
-            inline_keyboard=[
-                [
-                    InlineKeyboardButton(
-                        text="\U0001f4f2 Инструкция", callback_data="help"
-                    )
-                ],
-                [
-                    InlineKeyboardButton(
-                        text="\U0001f538 Главное меню", callback_data="main_menu"
-                    )
-                ],
-            ]
-        )
-
-        await bot.send_message(
+        await send_activation_prompt(
             referrer_id,
-            "\U0001f511 Спасибо, кто-то зашел по твоей ссылке и теперь ты получаешь "
-            f"{REFERRAL_BONUS_DAYS} дня доступа к VPN \U0001f30d\n\n"
-            "Вот твой ключ:\n"
-            f"{key.get('accessUrl', 'не удалось получить')}\n\n"
-            "\u2705 Вы можете продолжать приглашать друзей и получать ещё +3 дня доступа \u263a\ufe0f",
-            reply_markup=kb,
+            key.get("accessUrl", "не удалось получить"),
+            expires,
         )
     except Exception as exc:
         logging.error("Failed to create referral key: %s", exc)
@@ -241,9 +260,10 @@ async def callback_trial(callback: types.CallbackQuery):
                 user_id=callback.from_user.id,
                 is_trial=True,
             )
-            await callback.message.answer(
-                "Ваш пробный ключ на 24 часа:\n"
-                f"{key.get('accessUrl', 'не удалось получить')}"
+            await send_activation_prompt(
+                callback.message.chat.id,
+                key.get("accessUrl", "не удалось получить"),
+                expires,
             )
         except Exception as exc:
             logging.error("Failed to create trial key: %s", exc)
@@ -252,6 +272,25 @@ async def callback_trial(callback: types.CallbackQuery):
                 callback.message.chat.id,
                 "Не удалось получить пробный ключ.",
             )
+    await callback.answer()
+
+
+@dp.callback_query(F.data.startswith("device_"))
+async def callback_device(callback: types.CallbackQuery):
+    device = callback.data.split("_", 1)[1]
+    link = DEVICE_LINKS.get(device)
+    row = await get_key_info(callback.from_user.id)
+    if not row:
+        await callback.message.answer("\u041a\u043b\u044e\u0447 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d.")
+        await callback.answer()
+        return
+    _, access_url, _, _ = row
+    text = (
+        f"\u2705 \u0421\u043a\u0430\u0447\u0430\u0442\u044c Outline Client: <a href=\"{link}\">{link}</a>\n\n"
+        f"\u2705 \u0412\u0430\u0448 \u043a\u043b\u044e\u0447:\n<a href=\"{access_url}\">{access_url}</a>\n\n"
+        "\u041d\u0430\u0436\u043c\u0438\u0442\u0435 '+' , \u0432\u044b\u0431\u0435\u0440\u0438\u0442\u0435 '\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u043a\u043b\u044e\u0447 \u0432\u0440\u0443\u0447\u043d\u0443\u044e', \u0432\u0441\u0442\u0430\u0432\u044c\u0442\u0435 \u0441\u0441\u044b\u043b\u043a\u0443"
+    )
+    await callback.message.answer(text, parse_mode="HTML")
     await callback.answer()
 
 
