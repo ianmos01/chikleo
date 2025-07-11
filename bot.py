@@ -327,13 +327,15 @@ async def menu_keys(message: types.Message):
         access_url, expires_at, is_trial = row
         if expires_at is not None and expires_at <= now_ts:
             await clear_key(message.from_user.id, bool(is_trial))
-            text = "Срок действия вашего ключа истёк."
+            await send_temporary(bot, message.chat.id, "Срок действия вашего ключа истёк.")
         else:
             date_str = time.strftime("%d.%m.%Y", time.localtime(expires_at))
-            text = f"Ваш ключ активен до {date_str}\n{access_url}"
+            await send_temporary(
+                bot, message.chat.id, f"\U0001f511 Ваш ключ активен до {date_str}"
+            )
+            await send_temporary(bot, message.chat.id, access_url)
     else:
-        text = "У вас нет активного ключа."
-    await send_temporary(bot, message.chat.id, text)
+        await send_temporary(bot, message.chat.id, "У вас нет активного ключа.")
 
 
 @dp.message(F.text == "\U0001f9d1\u200d\U0001f4ac Отзывы")
