@@ -5,6 +5,9 @@ DB_PATH = os.getenv("DB_PATH", "vpn.sqlite")
 
 
 def get_connection():
+    dirpath = os.path.dirname(DB_PATH)
+    if dirpath:
+        os.makedirs(dirpath, exist_ok=True)
     return aiosqlite.connect(DB_PATH)
 
 
