@@ -10,8 +10,6 @@ from aiogram.types import (
     KeyboardButton,
     ReplyKeyboardMarkup,
 )
-from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import State, StatesGroup
 from aiogram import F
 from outline_api import Manager
 import time
@@ -72,44 +70,6 @@ async def send_temporary(
     asyncio.create_task(_remove())
     return msg
 
-
-class BuyVPN(StatesGroup):
-    waiting_tariff = State()
-    waiting_method = State()
-
-
-TARIFFS = {
-    "\U0001f7e1 1 мес — 199\u20bd": {
-        "amount": 199,
-        "code": "1m",
-        "days": 30,
-        "months": 1,
-    },
-    "\U0001f7e2 3 мес — 529\u20bd": {
-        "amount": 529,
-        "code": "3m",
-        "days": 90,
-        "months": 3,
-    },
-    "\U0001f7e2 6 мес — 949\u20bd": {
-        "amount": 949,
-        "code": "6m",
-        "days": 180,
-        "months": 6,
-    },
-    "\U0001f7e3 12 мес — 1659\u20bd": {
-        "amount": 1659,
-        "code": "12m",
-        "days": 365,
-        "months": 12,
-    },
-}
-
-PAY_METHODS = {
-    "\U0001f4b0 СБП": ("sbp", "СБП"),
-    "\U0001f4b3 Карта РФ": ("card", "Карта РФ"),
-    "\U0001f3e6 Ю.Касса": ("yookassa", "Ю.Касса"),
-}
 
 
 def outline_manager() -> Manager:
@@ -228,24 +188,13 @@ async def cmd_start(message: types.Message):
                 InlineKeyboardButton(
                     text="\U0001f511 Пробный период", callback_data="trial"
                 )
-            ],
-            [
-                InlineKeyboardButton(
-                    text="\U0001f6d2 Купить VPN | \U0001f4c5 Продлить",
-                    callback_data="buy_extend",
-                )
-            ],
+            ]
         ]
     )
 
     reply_kb = ReplyKeyboardMarkup(
         keyboard=[
-            [
-                KeyboardButton(
-                    text="\U0001f6d2 Купить VPN | \U0001f4c5 Продлить"
-                ),
-                KeyboardButton(text="\U0001f511 Мои активные ключи"),
-            ],
+            [KeyboardButton(text="\U0001f511 Мои активные ключи")],
             [
                 KeyboardButton(text="\U0001f9d1\u200d\U0001f4ac Отзывы"),
                 KeyboardButton(text="\U0001f381 Пригласить"),
@@ -300,14 +249,8 @@ async def callback_trial(callback: types.CallbackQuery):
     await callback.answer()
 
 
-@dp.callback_query(F.data == "buy_extend")
-async def callback_buy(callback: types.CallbackQuery, state: FSMContext):
-    await menu_buy(callback.message, state)
-    await callback.answer()
-
-
 @dp.callback_query(F.data == "main_menu")
-async def callback_main_menu(callback: types.CallbackQuery, state: FSMContext | None = None):
+async def callback_main_menu(callback: types.CallbackQuery):
     await cmd_start(callback.message)
     await callback.answer()
 
@@ -317,138 +260,9 @@ async def cmd_menu(message: types.Message):
     await cmd_start(message)
 
 
-@dp.message(Command("buy"))
-async def cmd_buy(message: types.Message, state: FSMContext):
-    await menu_buy(message, state)
-
-
 @dp.message(Command("help"))
 async def cmd_help(message: types.Message):
     await menu_help(message)
-
-
-@dp.message(F.text == "\U0001f6d2 Купить VPN | \U0001f4c5 Продлить")
-async def menu_buy(message: types.Message, state: FSMContext):
-    text = (
-        "\U0001f525 Оформляя подписку на Premium VPN от Мировые анекдоты — "
-        "вы получаете: \ud83d\udc47\n\n"
-        "└ 🚀 Максимальную скорость и стабильное соединение  \n"
-        "└ 👥 Оперативную поддержку в чате — @andekdot_support  \n"
-        "└ 🖥 Доступ с любых устройств — iOS, Android, Windows, MacOS, Android"
-        " TV  \n"
-        "└ 🔑 Один ключ — одно устройство (всё прозрачно)  \n"
-        "└ 🛠 Подробная инструкция + видео — запустите VPN за 2 минуты  \n"
-        "└ ✅ Безлимитный трафик — никаких ограничений  \n"
-        "└ 🔕 Без рекламы — ничто не мешает  \n"
-        "└ ⛔️ Без автосписаний — всё под вашим контролем\n\n"
-        "🎥 Как оплатить подписку?  \n"
-        "👉 Смотрите видео: тык сюда\n\n"
-        "💡 Совет: чем дольше срок, тем ниже цена за месяц 😉  \n"
-        "▶️ Выберите нужный тариф ниже и подключайтесь уже сегодня!"
-    )
-
-    tariff_kb = ReplyKeyboardMarkup(
-        keyboard=[
-            [
-                KeyboardButton(text="\U0001f7e1 1 мес — 199\u20bd"),
-                KeyboardButton(text="\U0001f7e2 3 мес — 529\u20bd"),
-                KeyboardButton(text="\U0001f7e2 6 мес — 949\u20bd"),
-            ],
-            [KeyboardButton(text="\U0001f7e3 12 мес — 1659\u20bd")],
-            [KeyboardButton(text="\U0001f4a0 Главное меню")],
-        ],
-        resize_keyboard=True,
-    )
-
-    await message.answer(text, reply_markup=tariff_kb)
-    await state.set_state(BuyVPN.waiting_tariff)
-
-
-@dp.message(BuyVPN.waiting_tariff, F.text == "\U0001f6d2 Купить VPN | \U0001f4c5 Продлить")
-@dp.message(BuyVPN.waiting_method, F.text == "\U0001f6d2 Купить VPN | \U0001f4c5 Продлить")
-async def restart_buy(message: types.Message, state: FSMContext):
-    await state.clear()
-    await menu_buy(message, state)
-
-
-@dp.message(BuyVPN.waiting_tariff, F.text.in_(TARIFFS.keys()))
-async def select_tariff(message: types.Message, state: FSMContext):
-    info = TARIFFS.get(message.text)
-    months = info.get("months", 1) if info else 1
-    suffix = "месяц" if months == 1 else ("месяца" if months in (2, 3, 4) else "месяцев")
-    await message.answer(
-        f"Вы выбрали тариф на {months} {suffix}. "
-        "Для оформления напишите: @andekdot_support"
-    )
-    await state.clear()
-
-
-@dp.message(BuyVPN.waiting_tariff, F.text == "\U0001f4a0 Главное меню")
-async def tariff_back_menu(message: types.Message, state: FSMContext):
-    await state.clear()
-    await cmd_start(message)
-
-
-@dp.message(BuyVPN.waiting_method, F.text.in_(PAY_METHODS.keys()))
-async def select_method(message: types.Message, state: FSMContext):
-    data = await state.get_data()
-    tariff_button = data.get("tariff")
-    tariff = TARIFFS.get(tariff_button)
-    method_code, method_name = PAY_METHODS[message.text]
-    url = (
-        f"https://ваш-домен.ру/pay?tariff={tariff['code']}&method="
-        f"{method_code}"
-    )
-    await message.answer(
-        f"Вы выбрали оплату через {method_name}.\n"
-        f"Для оплаты используйте следующую ссылку:\n{url}\n"
-        f"После оплаты напишите менеджеру: @andekdot_support"
-    )
-
-    pay_url = (
-        f"https://ваш-сайт.ру/pay?amount={tariff['amount']}&method="
-        f"{method_code}"
-    )
-    inline_kb = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                InlineKeyboardButton(
-                    text=f"\U0001f3e6 Оплатить {tariff['amount']} \u20bd",
-                    url=pay_url,
-                )
-            ]
-        ]
-    )
-    await message.answer(
-        "\u2611\ufe0f Создали запрос на покупку.\n"
-        "Нажмите на кнопку: «\U0001f3e6 Оплатить»",
-        reply_markup=inline_kb,
-    )
-
-    try:
-        key = await create_outline_key(label=f"vpn_{message.from_user.id}")
-        duration = tariff.get("days", 30) * 24 * 60 * 60
-        expires = int(time.time() + duration)
-        await add_key(
-            message.from_user.id,
-            key.get("id"),
-            key.get("accessUrl"),
-            expires,
-            False,
-        )
-        schedule_key_deletion(
-            key.get("id"),
-            delay=duration,
-            user_id=message.from_user.id,
-            is_trial=False,
-        )
-        await message.answer(
-            f"Ваш ключ:\n{key.get('accessUrl', 'не удалось получить')}"
-        )
-    except Exception as exc:
-        logging.error("Failed to create paid key: %s", exc)
-        await send_temporary(bot, message.chat.id, "Не удалось получить ключ.")
-    await state.clear()
 
 
 @dp.message(F.text == "\U0001f511 Мои активные ключи")
