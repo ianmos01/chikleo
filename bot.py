@@ -329,7 +329,8 @@ async def menu_keys(message: types.Message):
             await clear_key(message.from_user.id, bool(is_trial))
             text = "Срок действия вашего ключа истёк."
         else:
-            text = f"Ваш Outline ключ:\n{access_url}"
+            date_str = time.strftime("%d.%m.%Y", time.localtime(expires_at))
+            text = f"Ваш ключ активен до {date_str}\n{access_url}"
     else:
         text = "У вас нет активного ключа."
     await send_temporary(bot, message.chat.id, text)
