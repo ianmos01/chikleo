@@ -33,6 +33,14 @@ async def init_db() -> None:
             )
             """
         )
+        await conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS notifications (
+                user_id INTEGER PRIMARY KEY,
+                last_notified_at INTEGER
+            )
+            """
+        )
         await conn.commit()
 
 
@@ -128,5 +136,26 @@ async def update_expiration(user_id: int, is_trial: bool, expires_at: int) -> No
         await conn.execute(
             "UPDATE vpn_access SET expires_at=? WHERE user_id=? AND is_trial=?",
             (expires_at, user_id, int(is_trial)),
+        )
+        await conn.commit()
+
+
+async def get_last_notification(user_id: int) -> int | None:
+    async with get_connection() as conn:
+        cursor = await conn.execute(
+            "SELECT last_notified_at FROM notifications WHERE user_id=?",
+            (user_id,),
+        )
+        row = await cursor.fetchone()
+        if row:
+            return row[0]
+        return None
+
+
+async def set_last_notification(user_id: int, ts: int) -> None:
+    async with get_connection() as conn:
+        await conn.execute(
+            "INSERT OR REPLACE INTO notifications (user_id, last_notified_at) VALUES (?, ?)",
+            (user_id, ts),
         )
         await conn.commit()
