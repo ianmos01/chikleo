@@ -32,6 +32,10 @@ After that administrators can use special commands:
 - `/userlist <page>` &mdash; display detailed information about users by page
   (20 entries per page).
 
+Users are recorded in the database when they send the `/start` command or
+when they receive a VPN key. The `/users` and `/userlist` commands list
+only these recorded users.
+
 Only users whose IDs are present in `ADMINS` can run these commands.
 
 ## Requirements
