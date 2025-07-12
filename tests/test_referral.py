@@ -27,7 +27,8 @@ async def test_cmd_start_records_referral():
     )
 
     with patch("bot.record_referral", new=AsyncMock(return_value=True)) as rec, \
-        patch("bot.logging.info") as log, patch("bot.grant_referral_bonus", new=AsyncMock()) as bonus:
+        patch("bot.logging.info") as log, patch("bot.grant_referral_bonus", new=AsyncMock()) as bonus, \
+        patch("bot.save_user", new=AsyncMock()):
         await cmd_start(message)
         rec.assert_awaited_with(5, 3)
         log.assert_called_with("User %s joined via referral from %s", 5, 3)

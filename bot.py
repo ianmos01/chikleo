@@ -25,6 +25,7 @@ from db import (
     update_expiration,
     get_last_notification,
     set_last_notification,
+    save_user,
     get_connection,
 )
 
@@ -242,6 +243,8 @@ async def grant_referral_bonus(referrer_id: int) -> None:
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
     first_name = message.from_user.first_name or "друг"
+    username = getattr(message.from_user, "username", None)
+    await save_user(message.from_user.id, username)
     args = message.text.split(maxsplit=1)
     if len(args) > 1 and args[1].startswith("ref"):
         try:
