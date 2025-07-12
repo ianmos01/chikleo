@@ -44,6 +44,9 @@ OUTLINE_API_URL = os.getenv("OUTLINE_API_URL")
 
 DELETE_DELAY = int(os.getenv("DELETE_DELAY", "30"))
 
+# URL of the Telegram channel with user reviews
+REVIEWS_CHANNEL_URL = os.getenv("REVIEWS_CHANNEL_URL")
+
 # Number of days granted to a referrer for each invited user
 REFERRAL_BONUS_DAYS = 3
 
@@ -399,7 +402,16 @@ async def menu_keys(message: types.Message):
 
 @dp.message(F.text == "\U0001f9d1\u200d\U0001f4ac Отзывы")
 async def menu_reviews(message: types.Message):
-    await send_temporary(bot, message.chat.id, 'Раздел "Отзывы" пока в разработке')
+    """Show reviews channel link if configured."""
+    if REVIEWS_CHANNEL_URL:
+        kb = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(text="\u27a1\ufe0f Открыть канал", url=REVIEWS_CHANNEL_URL)]
+            ]
+        )
+        await message.answer("Отзывы о VPN:", reply_markup=kb)
+    else:
+        await send_temporary(bot, message.chat.id, 'Раздел "Отзывы" пока в разработке')
 
 
 @dp.message(F.text == "\U0001f6d2 Купить VPN | \U0001f4c5 Продлить")

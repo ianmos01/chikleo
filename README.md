@@ -61,6 +61,10 @@ If you have an [Outline](https://getoutline.org/) VPN server, set the
 `OUTLINE_API_URL` environment variable to your server's API URL. The bot will
 create a new access key when you select "🔑 Мои активные ключи".
 
+Set the `REVIEWS_CHANNEL_URL` environment variable to the link of your Telegram
+channel with user reviews. When configured, the "🧑‍💬 Отзывы" button will show a
+link opening this channel.
+
 ## Persistent data on Railway
 
 To keep the SQLite database across restarts, create a Railway volume and mount
