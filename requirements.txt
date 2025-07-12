@@ -1,5 +1,5 @@
-aiogram>=3.0
-pytest
-pytest-asyncio
-outline-api
-aiosqlite
+aiogram==3.21.0
+pytest==8.4.1
+pytest-asyncio==1.0.0
+outline-api==0.0.6
+aiosqlite==0.21.0
