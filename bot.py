@@ -435,6 +435,30 @@ async def menu_buy(message: types.Message):
     await message.answer(text, reply_markup=tariff_kb)
 
 
+@dp.message(F.text == "\U0001f7e1 1 мес — 199\u20bd")
+async def buy_one_month(message: types.Message):
+    """Send payment link for the 1 month subscription."""
+    kb = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="\u27a1\ufe0f Оплатить",
+                    url="https://t.me/tribute/app?startapp=piiP",
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text="\U0001f4a0 Главное меню", callback_data="main_menu"
+                )
+            ],
+        ]
+    )
+    await message.answer(
+        "Для оплаты подписки на 1 месяц нажмите кнопку ниже:",
+        reply_markup=kb,
+    )
+
+
 @dp.message(F.text == "\U0001f381 Пригласить")
 async def menu_invite(message: types.Message):
     first_name = message.from_user.first_name or "друг"
