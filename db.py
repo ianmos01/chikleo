@@ -70,6 +70,19 @@ async def add_key(
             " access_url, expires_at) VALUES (?, ?, ?, ?, ?)",
             (user_id, int(is_trial), key_id, access_url, expires_at),
         )
+        now_ts = int(time.time())
+        await conn.execute(
+            """
+            INSERT INTO users (user_id, is_trial, is_paid, created_at, expires_at)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(user_id) DO UPDATE SET
+                is_trial=excluded.is_trial,
+                is_paid=excluded.is_paid,
+                created_at=COALESCE(users.created_at, excluded.created_at),
+                expires_at=excluded.expires_at
+            """,
+            (user_id, int(is_trial), int(not is_trial), now_ts, expires_at),
+        )
         await conn.commit()
 
 
@@ -80,6 +93,16 @@ async def clear_key(user_id: int, is_trial: bool) -> None:
             "expires_at=NULL WHERE user_id=? AND is_trial=?",
             (user_id, int(is_trial)),
         )
+        if is_trial:
+            await conn.execute(
+                "UPDATE users SET is_trial=0, expires_at=NULL WHERE user_id=?",
+                (user_id,),
+            )
+        else:
+            await conn.execute(
+                "UPDATE users SET is_paid=0, expires_at=NULL WHERE user_id=?",
+                (user_id,),
+            )
         await conn.commit()
 
 
@@ -150,6 +173,16 @@ async def update_expiration(user_id: int, is_trial: bool, expires_at: int) -> No
             "UPDATE vpn_access SET expires_at=? WHERE user_id=? AND is_trial=?",
             (expires_at, user_id, int(is_trial)),
         )
+        if is_trial:
+            await conn.execute(
+                "UPDATE users SET expires_at=?, is_trial=1, is_paid=0 WHERE user_id=?",
+                (expires_at, user_id),
+            )
+        else:
+            await conn.execute(
+                "UPDATE users SET expires_at=?, is_trial=0, is_paid=1 WHERE user_id=?",
+                (expires_at, user_id),
+            )
         await conn.commit()
 
 
@@ -170,6 +203,20 @@ async def set_last_notification(user_id: int, ts: int) -> None:
         await conn.execute(
             "INSERT OR REPLACE INTO notifications (user_id, last_notified_at) VALUES (?, ?)",
             (user_id, ts),
+        )
+        await conn.commit()
+
+
+async def save_user(user_id: int, username: str | None) -> None:
+    """Ensure the user record exists and update the username."""
+    async with get_connection() as conn:
+        await conn.execute(
+            """
+            INSERT INTO users (user_id, username, is_trial, is_paid, created_at, expires_at)
+            VALUES (?, ?, 0, 0, NULL, NULL)
+            ON CONFLICT(user_id) DO UPDATE SET username=excluded.username
+            """,
+            (user_id, username),
         )
         await conn.commit()
 
