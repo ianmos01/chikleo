@@ -18,7 +18,7 @@ user can only obtain a trial VPN once and paid keys expire automatically.
 ## Admin commands
 
 Basic administration features are implemented in `admin.py`. Add your Telegram
-user ID to the `ADMIN_IDS` list inside that file and include the router in the bot
+user ID to the `ADMINS` list inside that file and include the router in the bot
 application:
 
 ```python
@@ -28,16 +28,15 @@ dp.include_router(admin_router)
 
 After that administrators can use special commands:
 
-- `/users` &mdash; list all recorded users with registration dates.
-- `/active_keys` &mdash; show VPN keys that are still valid.
-- `/expired_keys` &mdash; show users whose keys have expired.
-- `/broadcast <message>` &mdash; send a message to every recorded user.
-- `/add_user <user_id>` &mdash; manually add a user to the database.
-- `/del_user <user_id>` &mdash; remove a user and their keys.
-- `/wipe_db confirm` &mdash; delete **all** user and key information.
+- `/users` &mdash; show aggregated statistics about all users.
+- `/userlist <page>` &mdash; display detailed information about users by page
+  (20 entries per page).
 
-Users are stored in the database when they send the `/start` command or when
-they receive a VPN key. Only IDs listed in `ADMIN_IDS` can run these commands.
+Users are recorded in the database when they send the `/start` command or
+when they receive a VPN key. The `/users` and `/userlist` commands list
+only these recorded users.
+
+Only users whose IDs are present in `ADMINS` can run these commands.
 
 ## Requirements
 
