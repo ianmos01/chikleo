@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import asyncio
 import datetime
+import logging
 from aiogram import Router, Bot
 from aiogram.filters import Command
 from aiogram.types import Message
@@ -189,9 +191,25 @@ async def cmd_wipe_db(message: Message) -> None:
         )
         return
     async with get_connection() as conn:
+        await conn.execute(
+            "CREATE TABLE IF NOT EXISTS keys (user_id INTEGER, vpn_id TEXT, expires_at TEXT)"
+        )
+        cursor = await conn.execute("SELECT vpn_id FROM keys")
+        key_rows = await cursor.fetchall()
         await conn.execute("DELETE FROM users")
         await conn.execute("DELETE FROM keys")
         await conn.commit()
+
+    key_ids = [row[0] for row in key_rows if row and row[0] is not None]
+    if key_ids:
+        from bot import outline_manager
+
+        manager = outline_manager()
+        for kid in key_ids:
+            try:
+                await asyncio.to_thread(manager.delete, kid)
+            except Exception as exc:
+                logging.error("Failed to delete Outline key %s: %s", kid, exc)
     await message.answer("\u0411\u0430\u0437\u0430 \u0434\u0430\u043d\u043d\u044b\u0445 \u043e\u0447\u0438\u0449\u0435\u043d\u0430.")
 
 
