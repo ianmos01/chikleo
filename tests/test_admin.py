@@ -1,7 +1,7 @@
 import os
 import sys
 from types import SimpleNamespace
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 import aiosqlite
@@ -63,6 +63,9 @@ async def test_wipe_db_confirmation(tmp_path, monkeypatch):
         await conn.execute(
             "CREATE TABLE keys (user_id INTEGER, vpn_id TEXT, expires_at TEXT)"
         )
+        await conn.execute(
+            "INSERT INTO keys VALUES (1, '11', '2099')"
+        )
         await conn.commit()
 
     msg = SimpleNamespace(
@@ -73,10 +76,14 @@ async def test_wipe_db_confirmation(tmp_path, monkeypatch):
     assert "confirm" in msg.answer.await_args[0][0]
 
     msg2 = SimpleNamespace(
-        from_user=SimpleNamespace(id=124508057), text="/wipe_db confirm", answer=AsyncMock()
+        from_user=SimpleNamespace(id=124508057), text="/wipe_db confirm", answer=AsyncMock(),
     )
-    await admin.cmd_wipe_db(msg2)
+    manager = Mock()
+    with patch("bot.outline_manager", return_value=manager):
+        await admin.cmd_wipe_db(msg2)
     msg2.answer.assert_awaited_with("База данных очищена.")
+    manager.delete.assert_called_with("11")
+
 
     async with _get_conn() as conn:
         cursor = await conn.execute("SELECT COUNT(*) FROM users")
